@@ -16,30 +16,68 @@ bot.onText(/\/start/, (msg) => {
 });
 
 // Обработка данных из Mini App
-// Обработка данных из Mini App
 bot.on('web_app_data', (msg) => {
     try {
         const data = JSON.parse(msg.web_app_data.data);
         console.log('Получены данные:', data);
         
         if (data.action === 'invite') {
-            // Отправляем приглашение сопернику
-            bot.sendMessage(data.opponent_id, 
-                `🎮 ${data.inviter_name} приглашает вас сыграть в крестики-нолики!\n\nИгра начнется через 5 секунд после принятия.`, {
-                reply_markup: {
-                    inline_keyboard: [[
-                        { text: '✅ Принять и начать игру', callback_data: `accept_${data.inviter_id}` },
-                        { text: '❌ Отклонить', callback_data: 'decline' }
-                    ]]
-                }
+            // Ищем пользователя по юзернейму
+            bot.getChat(`@${data.opponent_username}`).then((chat) => {
+                // Отправляем приглашение сопернику
+                bot.sendMessage(chat.id, 
+                    `🎮 ${data.inviter_name} (@${data.inviter_username}) приглашает вас сыграть в крестики-нолики!`, {
+                    reply_markup: {
+                        inline_keyboard: [[
+                            { text: '✅ Принять игру', callback_data: `accept_${msg.chat.id}_${data.inviter_name}` },
+                            { text: '❌ Отклонить', callback_data: 'decline' }
+                        ]]
+                    }
+                });
+                
+                // Подтверждение отправителю
+                bot.sendMessage(msg.chat.id, `✅ Приглашение отправлено пользователю @${data.opponent_username}`);
+            }).catch(() => {
+                bot.sendMessage(msg.chat.id, `❌ Пользователь @${data.opponent_username} не найден или не начинал диалог с ботом`);
             });
-            
-            // Подтверждение отправителю
-            bot.sendMessage(msg.chat.id, `✅ Приглашение отправлено пользователю @${data.opponent_username}. Ожидайте ответа...`);
         }
     } catch (error) {
         console.error('Ошибка обработки web_app_data:', error);
     }
+});
+
+// Обработка нажатий на кнопки
+bot.on('callback_query', (query) => {
+    const data = query.data;
+    const chatId = query.message.chat.id;
+    
+    if (data.startsWith('accept_')) {
+        const parts = data.split('_');
+        const inviterChatId = parts[1];
+        const inviterName = parts[2];
+        
+        bot.sendMessage(chatId, '✅ Вы приняли приглашение! Игра начинается...', {
+            reply_markup: {
+                inline_keyboard: [[
+                    { text: '🎮 Перейти в игру', web_app: { url: 'https://cream44luv.github.io/tictactoe-telegram/' } }
+                ]]
+            }
+        });
+        
+        // Уведомляем пригласившего
+        bot.sendMessage(inviterChatId, `🎮 ${query.from.first_name} принял ваше приглашение! Игра начинается!`, {
+            reply_markup: {
+                inline_keyboard: [[
+                    { text: '🎮 Перейти в игру', web_app: { url: 'https://cream44luv.github.io/tictactoe-telegram/' } }
+                ]]
+            }
+        });
+        
+    } else if (data === 'decline') {
+        bot.sendMessage(chatId, '❌ Вы отклонили приглашение');
+    }
+    
+    bot.answerCallbackQuery(query.id);
 });
 
 // Обработка нажатий на кнопки

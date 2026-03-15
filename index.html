@@ -28,9 +28,92 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
         
-        /* Экран 1: Главный экран */
+        /* Затемнение фона */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .overlay.active {
+            display: flex;
+        }
+        
+        /* Модальное окно результата */
+        .result-modal {
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
+            border-radius: 30px;
+            padding: 40px 30px;
+            text-align: center;
+            max-width: 300px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            animation: popIn 0.3s ease;
+        }
+        
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .result-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .result-title.win {
+            color: #31c48d;
+        }
+        
+        .result-title.lose {
+            color: #e34f4f;
+        }
+        
+        .result-title.draw {
+            color: #f59e0b;
+        }
+        
+        .rematch-timer {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--tg-theme-button-color, #40a7e3);
+            margin: 20px 0;
+        }
+        
+        .rematch-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .rematch-btn {
+            flex: 1;
+            background: var(--tg-theme-button-color, #40a7e3);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .rematch-btn.secondary {
+            background: var(--tg-theme-hint-color, #9aa3ad);
+        }
+        
+        /* Главный экран */
         .main-screen {
             display: flex;
             flex-direction: column;
@@ -72,7 +155,7 @@
             box-shadow: 0 5px 10px rgba(64, 167, 227, 0.4);
         }
         
-        /* Экран 2: Приглашение друзей */
+        /* Экран приглашения */
         .invite-screen {
             display: none;
             flex-direction: column;
@@ -93,7 +176,30 @@
             margin-bottom: 20px;
         }
         
-        .search-box {
+        .invite-methods {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .invite-method-btn {
+            flex: 1;
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
+            border: none;
+            border-radius: 30px;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--tg-theme-text-color);
+            cursor: pointer;
+        }
+        
+        .invite-method-btn.active {
+            background: var(--tg-theme-button-color, #40a7e3);
+            color: white;
+        }
+        
+        .username-input {
             background: var(--tg-theme-secondary-bg-color, #ffffff);
             border-radius: 30px;
             padding: 15px 20px;
@@ -103,7 +209,7 @@
             gap: 10px;
         }
         
-        .search-box input {
+        .username-input input {
             flex: 1;
             border: none;
             background: transparent;
@@ -112,81 +218,16 @@
             color: var(--tg-theme-text-color);
         }
         
-        .friends-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 20px;
-            max-height: 50vh;
-            overflow-y: auto;
-        }
-        
-        .friend-card {
-            background: var(--tg-theme-secondary-bg-color, #ffffff);
-            border-radius: 20px;
-            padding: 15px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            cursor: pointer;
-        }
-        
-        .friend-avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #40a7e3, #8a3ffc);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            font-weight: bold;
-            position: relative;
-        }
-        
-        .online-indicator {
-            position: absolute;
-            bottom: 2px;
-            right: 2px;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            border: 2px solid var(--tg-theme-secondary-bg-color, #ffffff);
-        }
-        
-        .online-indicator.online {
-            background: #31c48d;
-        }
-        
-        .online-indicator.offline {
-            background: #9aa3ad;
-        }
-        
-        .friend-info {
-            flex: 1;
-        }
-        
-        .friend-name {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-        
-        .friend-status {
-            font-size: 13px;
-            color: var(--tg-theme-hint-color);
-        }
-        
-        .invite-btn {
+        .send-invite-btn {
             background: var(--tg-theme-button-color, #40a7e3);
             color: white;
             border: none;
             border-radius: 30px;
-            padding: 8px 20px;
-            font-size: 14px;
+            padding: 15px;
+            font-size: 18px;
             font-weight: 600;
             cursor: pointer;
+            width: 100%;
         }
         
         .invite-link-section {
@@ -195,11 +236,6 @@
             background: var(--tg-theme-secondary-bg-color, #ffffff);
             border-radius: 20px;
             text-align: center;
-        }
-        
-        .invite-link-section p {
-            margin-bottom: 15px;
-            color: var(--tg-theme-hint-color);
         }
         
         .share-link-btn {
@@ -214,7 +250,7 @@
             width: 100%;
         }
         
-        /* Экран 3: Ожидание / Обратный отсчет */
+        /* Экран ожидания */
         .waiting-screen {
             display: none;
             flex-direction: column;
@@ -229,31 +265,34 @@
             margin-bottom: 30px;
         }
         
-        .countdown-circle {
-            width: 150px;
-            height: 150px;
+        .waiting-spinner {
+            width: 80px;
+            height: 80px;
+            border: 8px solid var(--tg-theme-secondary-bg-color, #f0f2f5);
+            border-top: 8px solid var(--tg-theme-button-color, #40a7e3);
             border-radius: 50%;
-            background: var(--tg-theme-button-color, #40a7e3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            animation: spin 1s linear infinite;
             margin: 30px 0;
-            box-shadow: 0 10px 20px rgba(64, 167, 227, 0.4);
         }
         
-        .countdown-number {
-            font-size: 70px;
-            font-weight: 700;
-            color: white;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         
-        .waiting-screen p {
-            font-size: 18px;
+        .cancel-btn {
+            background: none;
+            border: 2px solid var(--tg-theme-hint-color, #9aa3ad);
             color: var(--tg-theme-hint-color);
-            margin-top: 20px;
+            border-radius: 30px;
+            padding: 12px 40px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 30px;
         }
         
-        /* Экран 4: Игра */
+        /* Экран игры */
         .game-screen {
             display: none;
             flex-direction: column;
@@ -365,31 +404,23 @@
         .cell.o {
             color: #e34f4f;
         }
-        
-        .game-result {
-            text-align: center;
-            font-size: 24px;
-            margin: 20px 0;
-            padding: 20px;
-            background: var(--tg-theme-secondary-bg-color, #ffffff);
-            border-radius: 20px;
-        }
-        
-        .new-game-btn {
-            background: var(--tg-theme-button-color, #40a7e3);
-            color: white;
-            border: none;
-            border-radius: 30px;
-            padding: 15px 30px;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 20px;
-        }
     </style>
 </head>
 <body>
     <div class="app">
+        <!-- Затемнение и модальное окно результата -->
+        <div class="overlay" id="resultOverlay">
+            <div class="result-modal" id="resultModal">
+                <div class="result-title" id="resultTitle">Победа!</div>
+                <div class="rematch-timer" id="rematchTimer">10</div>
+                <p>Ожидание реванша...</p>
+                <div class="rematch-buttons">
+                    <button class="rematch-btn" id="acceptRematchBtn">✅ Принять</button>
+                    <button class="rematch-btn secondary" id="declineRematchBtn">❌ Выйти</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Главный экран -->
         <div class="main-screen" id="mainScreen">
             <h1>❌⭕</h1>
@@ -397,31 +428,38 @@
             <button class="play-button" id="playMainBtn">Играть</button>
         </div>
 
-        <!-- Экран приглашения друзей -->
+        <!-- Экран приглашения -->
         <div class="invite-screen" id="inviteScreen">
             <button class="back-button" id="backFromInviteBtn">← Назад</button>
             <h2>Пригласить друга</h2>
             
-            <div class="search-box">
-                <span>🔍</span>
-                <input type="text" id="friendSearch" placeholder="Поиск по имени...">
+            <div class="invite-methods">
+                <button class="invite-method-btn active" id="usernameMethod">По юзернейму</button>
+                <button class="invite-method-btn" id="linkMethod">По ссылке</button>
             </div>
             
-            <div class="friends-list" id="friendsList"></div>
+            <div id="usernameInvite">
+                <div class="username-input">
+                    <span>@</span>
+                    <input type="text" id="usernameInput" placeholder="username друга">
+                </div>
+                <button class="send-invite-btn" id="sendInviteBtn">Отправить приглашение</button>
+            </div>
             
-            <div class="invite-link-section">
-                <p>Или отправьте ссылку-приглашение:</p>
-                <button class="share-link-btn" id="shareInviteLink">🔗 Отправить ссылку другу</button>
+            <div id="linkInvite" style="display: none;">
+                <div class="invite-link-section">
+                    <p>Отправьте эту ссылку другу в Telegram:</p>
+                    <button class="share-link-btn" id="shareInviteLink">🔗 Отправить ссылку</button>
+                </div>
             </div>
         </div>
 
-        <!-- Экран ожидания / обратный отсчет -->
+        <!-- Экран ожидания -->
         <div class="waiting-screen" id="waitingScreen">
             <h2 id="waitingTitle">Ожидание друга...</h2>
-            <div class="countdown-circle">
-                <span class="countdown-number" id="countdownNumber">5</span>
-            </div>
-            <p id="waitingSubtitle">Игра начнется через</p>
+            <div class="waiting-spinner"></div>
+            <p id="waitingSubtitle">Приглашение отправлено</p>
+            <button class="cancel-btn" id="cancelWaitBtn">Отмена</button>
         </div>
 
         <!-- Экран игры -->
@@ -452,10 +490,6 @@
             <div class="board" id="board">
                 <!-- Клетки заполнятся через JS -->
             </div>
-            
-            <div class="game-result" id="gameResult" style="display: none;"></div>
-            
-            <button class="new-game-btn" id="newGameBtn" style="display: none;">Новая игра</button>
         </div>
     </div>
 
@@ -475,46 +509,47 @@
         
         // Состояние приложения
         let currentScreen = 'main';
-        let selectedFriend = null;
+        let invitedFriend = null;
         let gameBoard = ['', '', '', '', '', '', '', '', ''];
         let currentPlayer = 'X';
         let gameActive = false;
-        let gameResult = null;
         let moveTimer = null;
         let moveTimeLeft = 10;
-        let countdownTimer = null;
-        let countdownValue = 5;
-        
-        // Моковые данные друзей (в реальном приложении будут из Telegram)
-        const friends = [
-            { id: 101, name: 'Алексей', username: 'alex', avatar: 'А', online: true, lastSeen: 'online' },
-            { id: 102, name: 'Мария', username: 'masha', avatar: 'М', online: true, lastSeen: 'online' },
-            { id: 103, name: 'Дмитрий', username: 'dimon', avatar: 'Д', online: false, lastSeen: '2ч назад' },
-            { id: 104, name: 'Елена', username: 'lena', avatar: 'Е', online: true, lastSeen: 'online' },
-            { id: 105, name: 'Сергей', username: 'serg', avatar: 'С', online: false, lastSeen: 'вчера' },
-        ];
+        let rematchTimer = null;
+        let rematchTimeLeft = 10;
+        let rematchAccepted = false;
         
         // DOM элементы
         const mainScreen = document.getElementById('mainScreen');
         const inviteScreen = document.getElementById('inviteScreen');
         const waitingScreen = document.getElementById('waitingScreen');
         const gameScreen = document.getElementById('gameScreen');
+        const resultOverlay = document.getElementById('resultOverlay');
+        const resultModal = document.getElementById('resultModal');
+        const resultTitle = document.getElementById('resultTitle');
+        const rematchTimerSpan = document.getElementById('rematchTimer');
         
         const playMainBtn = document.getElementById('playMainBtn');
         const backFromInviteBtn = document.getElementById('backFromInviteBtn');
         const backFromGameBtn = document.getElementById('backFromGameBtn');
+        const cancelWaitBtn = document.getElementById('cancelWaitBtn');
+        const acceptRematchBtn = document.getElementById('acceptRematchBtn');
+        const declineRematchBtn = document.getElementById('declineRematchBtn');
+        
+        const usernameMethod = document.getElementById('usernameMethod');
+        const linkMethod = document.getElementById('linkMethod');
+        const usernameInvite = document.getElementById('usernameInvite');
+        const linkInvite = document.getElementById('linkInvite');
+        const usernameInput = document.getElementById('usernameInput');
+        const sendInviteBtn = document.getElementById('sendInviteBtn');
         const shareInviteLink = document.getElementById('shareInviteLink');
-        const friendSearch = document.getElementById('friendSearch');
-        const friendsList = document.getElementById('friendsList');
-        const board = document.getElementById('board');
-        const gameResultDiv = document.getElementById('gameResult');
-        const newGameBtn = document.getElementById('newGameBtn');
-        const moveTimerSpan = document.getElementById('moveTimer');
-        const countdownNumber = document.getElementById('countdownNumber');
+        
         const waitingTitle = document.getElementById('waitingTitle');
         const waitingSubtitle = document.getElementById('waitingSubtitle');
         const playerXName = document.getElementById('playerXName');
         const playerOName = document.getElementById('playerOName');
+        const moveTimerSpan = document.getElementById('moveTimer');
+        const board = document.getElementById('board');
         
         // Переключение экранов
         function showScreen(screen) {
@@ -528,100 +563,84 @@
                 mainScreen.style.display = 'flex';
             } else if (screen === 'invite') {
                 inviteScreen.style.display = 'flex';
-                renderFriendsList();
             } else if (screen === 'waiting') {
                 waitingScreen.style.display = 'flex';
-                startCountdown();
             } else if (screen === 'game') {
                 gameScreen.style.display = 'flex';
                 resetGame();
             }
         }
         
-        // Рендер списка друзей
-        function renderFriendsList() {
-            const searchTerm = friendSearch.value.toLowerCase();
-            const filtered = friends.filter(f => 
-                f.name.toLowerCase().includes(searchTerm) || 
-                f.username.toLowerCase().includes(searchTerm)
-            );
-            
-            friendsList.innerHTML = filtered.map(friend => `
-                <div class="friend-card" data-id="${friend.id}">
-                    <div class="friend-avatar">
-                        ${friend.avatar}
-                        <span class="online-indicator ${friend.online ? 'online' : 'offline'}"></span>
-                    </div>
-                    <div class="friend-info">
-                        <div class="friend-name">${friend.name}</div>
-                        <div class="friend-status">${friend.online ? '🟢 онлайн' : `⚪ ${friend.lastSeen}`}</div>
-                    </div>
-                    <button class="invite-btn" onclick="inviteFriend(${friend.id})">Пригласить</button>
-                </div>
-            `).join('');
-        }
+        // Переключение методов приглашения
+        usernameMethod.addEventListener('click', () => {
+            usernameMethod.classList.add('active');
+            linkMethod.classList.remove('active');
+            usernameInvite.style.display = 'block';
+            linkInvite.style.display = 'none';
+        });
         
-        // Приглашение друга
-        window.inviteFriend = function(friendId) {
-            const friend = friends.find(f => f.id === friendId);
-            selectedFriend = friend;
+        linkMethod.addEventListener('click', () => {
+            linkMethod.classList.add('active');
+            usernameMethod.classList.remove('active');
+            linkInvite.style.display = 'block';
+            usernameInvite.style.display = 'none';
+        });
+        
+        // Отправка приглашения по юзернейму
+        sendInviteBtn.addEventListener('click', () => {
+            const friendUsername = usernameInput.value.trim().replace('@', '');
+            
+            if (!friendUsername) {
+                tg.showPopup({
+                    title: 'Ошибка',
+                    message: 'Введите username друга',
+                    buttons: [{ type: 'ok' }]
+                });
+                return;
+            }
             
             // Отправляем приглашение через бота
             if (tg && tg.sendData) {
                 tg.sendData(JSON.stringify({
                     action: 'invite',
-                    opponent_id: friendId,
-                    opponent_username: friend.username,
+                    opponent_username: friendUsername,
                     inviter_id: currentUser.id,
-                    inviter_name: currentUser.name
+                    inviter_name: currentUser.name,
+                    inviter_username: currentUser.username
                 }));
             }
             
-            // Показываем экран ожидания
-            waitingTitle.textContent = `Ожидание ${friend.name}...`;
+            invitedFriend = { username: friendUsername };
+            waitingTitle.textContent = `Ожидание @${friendUsername}...`;
+            waitingSubtitle.textContent = 'Приглашение отправлено';
             showScreen('waiting');
-        };
+        });
         
         // Отправка ссылки-приглашения
         shareInviteLink.addEventListener('click', () => {
-            const inviteLink = `https://t.me/share/url?url=${encodeURIComponent('Присоединяйся играть в крестики-нолики!')}`;
-            tg.openTelegramLink(inviteLink);
+            const inviteText = `🎮 Присоединяйся играть в крестики-нолики!\n\nИграй со мной: @${currentUser.username}\n\nОткрой бота и нажми /start: @hrestiks_and_holes_bot`;
+            const encodedText = encodeURIComponent(inviteText);
+            tg.openTelegramLink(`https://t.me/share/url?url=${encodedText}`);
         });
         
-        // Обратный отсчет перед игрой
-        function startCountdown() {
-            countdownValue = 5;
-            countdownNumber.textContent = countdownValue;
-            
-            if (countdownTimer) clearInterval(countdownTimer);
-            
-            countdownTimer = setInterval(() => {
-                countdownValue--;
-                countdownNumber.textContent = countdownValue;
-                
-                if (countdownValue <= 0) {
-                    clearInterval(countdownTimer);
-                    startGame();
-                }
-            }, 1000);
-        }
+        // Отмена ожидания
+        cancelWaitBtn.addEventListener('click', () => {
+            showScreen('main');
+        });
         
-        // Начало игры
-        function startGame() {
+        // Начало игры (вызывается из бота)
+        window.startGame = function(opponentName) {
             playerXName.textContent = currentUser.name;
-            playerOName.textContent = selectedFriend ? selectedFriend.name : 'Друг';
+            playerOName.textContent = opponentName || 'Соперник';
             showScreen('game');
-        }
+        };
         
         // Сброс игры
         function resetGame() {
             gameBoard = ['', '', '', '', '', '', '', '', ''];
             currentPlayer = 'X';
             gameActive = true;
-            gameResult = null;
             moveTimeLeft = 10;
-            gameResultDiv.style.display = 'none';
-            newGameBtn.style.display = 'none';
             renderBoard();
             startMoveTimer();
         }
@@ -661,11 +680,9 @@
                 }
                 
                 if (moveTimeLeft <= 0) {
-                    // Автопоражение
                     clearInterval(moveTimer);
                     gameActive = false;
-                    gameResult = currentPlayer === 'X' ? 'O' : 'X';
-                    showGameResult('Поражение (время вышло)', false);
+                    showGameResult('lose', 'Время вышло!');
                 }
             }, 1000);
         }
@@ -675,7 +692,7 @@
             const index = e.target.dataset.index;
             
             if (!gameActive || gameBoard[index] !== '') return;
-            if (currentPlayer !== 'X') return; // В демо всегда X - игрок, O - бот
+            if (currentPlayer !== 'X') return; // В демо X - игрок
             
             // Ход игрока
             gameBoard[index] = 'X';
@@ -684,11 +701,11 @@
             // Проверка победы
             if (checkWin('X')) {
                 gameActive = false;
-                showGameResult('Ты победил!', true);
+                showGameResult('win', 'Победа!');
                 return;
             } else if (isDraw()) {
                 gameActive = false;
-                showGameResult('Ничья!', false);
+                showGameResult('draw', 'Ничья!');
                 return;
             }
             
@@ -696,12 +713,12 @@
             currentPlayer = 'O';
             moveTimeLeft = 10;
             
-            // Ход бота (друга) через 500ms
-            setTimeout(() => botMove(), 500);
+            // Ход друга (через бота)
+            setTimeout(() => friendMove(), 800);
         }
         
-        // Ход бота (имитация друга)
-        function botMove() {
+        // Ход друга (в реальном приложении будет приходить от бота)
+        function friendMove() {
             if (!gameActive || currentPlayer !== 'O') return;
             
             // Найти пустые клетки
@@ -712,7 +729,8 @@
             
             if (emptyIndices.length === 0) return;
             
-            // Выбрать случайную (в реальном приложении ход будет от друга)
+            // В реальности ход будет от друга через бота
+            // Сейчас для демо - случайный ход
             const randomIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
             gameBoard[randomIndex] = 'O';
             renderBoard();
@@ -720,11 +738,11 @@
             // Проверка победы
             if (checkWin('O')) {
                 gameActive = false;
-                showGameResult('Ты проиграл!', false);
+                showGameResult('lose', 'Поражение!');
                 return;
             } else if (isDraw()) {
                 gameActive = false;
-                showGameResult('Ничья!', false);
+                showGameResult('draw', 'Ничья!');
                 return;
             }
             
@@ -750,25 +768,67 @@
             return gameBoard.every(cell => cell !== '');
         }
         
-        // Показать результат
-        function showGameResult(text, isWin) {
+        // Показать результат с затемнением
+        function showGameResult(type, message) {
             gameActive = false;
             clearInterval(moveTimer);
-            gameResultDiv.textContent = text;
-            gameResultDiv.style.display = 'block';
-            newGameBtn.style.display = 'block';
+            
+            resultTitle.textContent = message;
+            resultTitle.className = 'result-title';
+            
+            if (type === 'win') {
+                resultTitle.classList.add('win');
+            } else if (type === 'lose') {
+                resultTitle.classList.add('lose');
+            } else {
+                resultTitle.classList.add('draw');
+            }
+            
+            resultOverlay.classList.add('active');
+            startRematchTimer();
         }
         
-        // Обработчики кнопок
+        // Таймер реванша
+        function startRematchTimer() {
+            rematchTimeLeft = 10;
+            rematchTimerSpan.textContent = rematchTimeLeft;
+            rematchAccepted = false;
+            
+            if (rematchTimer) clearInterval(rematchTimer);
+            
+            rematchTimer = setInterval(() => {
+                rematchTimeLeft--;
+                rematchTimerSpan.textContent = rematchTimeLeft;
+                
+                if (rematchTimeLeft <= 0) {
+                    clearInterval(rematchTimer);
+                    if (!rematchAccepted) {
+                        resultOverlay.classList.remove('active');
+                        showScreen('main');
+                    }
+                }
+            }, 1000);
+        }
+        
+        // Принять реванш
+        acceptRematchBtn.addEventListener('click', () => {
+            rematchAccepted = true;
+            clearInterval(rematchTimer);
+            resultOverlay.classList.remove('active');
+            resetGame();
+        });
+        
+        // Отклонить реванш
+        declineRematchBtn.addEventListener('click', () => {
+            clearInterval(rematchTimer);
+            resultOverlay.classList.remove('active');
+            showScreen('main');
+        });
+        
+        // Обработчики навигации
         playMainBtn.addEventListener('click', () => showScreen('invite'));
-        
         backFromInviteBtn.addEventListener('click', () => showScreen('main'));
-        
         backFromGameBtn.addEventListener('click', () => showScreen('main'));
-        
-        newGameBtn.addEventListener('click', resetGame);
-        
-        friendSearch.addEventListener('input', renderFriendsList);
         
         // Инициализация
         renderBoard();

@@ -8,6 +8,9 @@ const bot = new TelegramBot(token, { polling: true });
 
 const appUrl = 'https://cream44luv.github.io/tictactoe-telegram/';
 
+// Хранилище игр (в памяти)
+const games = new Map();
+
 // Обработка команды /start
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
@@ -30,45 +33,65 @@ bot.on('web_app_data', (msg) => {
             const friendUsername = data.opponent_username.replace('@', '');
             const gameId = data.game_id;
             
-            // Ссылка прямо на игру с параметрами
-            const gameUrl = `${appUrl}?game=${gameId}&inviter=${data.inviter_username}`;
+            // Сохраняем игру
+            games.set(gameId, {
+                creator: {
+                    id: msg.chat.id,
+                    name: data.inviter_name,
+                    username: data.inviter_username
+                },
+                opponent: null,
+                status: 'waiting',
+                createdAt: Date.now()
+            });
+            
+            // Ссылка на игру с параметрами
+            const gameUrl = `${appUrl}?game=${gameId}`;
             
             // Пытаемся найти пользователя по юзернейму
             bot.getChat(`@${friendUsername}`).then((chat) => {
-                // Отправляем приглашение другу с ссылкой сразу на игру
+                // Отправляем приглашение другу
                 bot.sendMessage(chat.id, 
-                    `🎮 ${data.inviter_name} (@${data.inviter_username}) приглашает вас сыграть в крестики-нолики!\n\n👉 **Нажмите кнопку ниже, чтобы сразу перейти в игру**`, {
+                    `🎮 ${data.inviter_name} (@${data.inviter_username}) приглашает вас сыграть в крестики-нолики!\n\n👉 **Нажмите кнопку, чтобы присоединиться**`, {
                     parse_mode: 'Markdown',
                     reply_markup: {
                         inline_keyboard: [[
-                            { text: '🎮 Перейти в игру', web_app: { url: gameUrl } }
+                            { text: '🎮 Присоединиться к игре', web_app: { url: gameUrl } }
                         ]]
                     }
                 });
                 
                 // Подтверждение отправителю
-                bot.sendMessage(msg.chat.id, `✅ Приглашение отправлено пользователю @${friendUsername}`);
+                bot.sendMessage(msg.chat.id, `✅ Приглашение отправлено пользователю @${friendUsername}. Ожидайте...`);
                 
             }).catch(() => {
                 bot.sendMessage(msg.chat.id, 
-                    `❌ Пользователь @${friendUsername} не найден или не начинал диалог с ботом.\n\n👉 Отправь ему ссылку: ${gameUrl}`);
+                    `❌ Пользователь @${friendUsername} не найден.\n\n👉 Отправь ему ссылку: ${gameUrl}`);
             });
         }
+        
+        // Обработка присоединения к игре
+        if (data.action === 'join') {
+            const gameId = data.game_id;
+            const game = games.get(gameId);
+            
+            if (game && game.status === 'waiting') {
+                game.opponent = {
+                    id: msg.chat.id,
+                    name: data.player_name,
+                    username: data.player_username
+                };
+                game.status = 'ready';
+                
+                // Уведомляем создателя
+                bot.sendMessage(game.creator.id, 
+                    `🎮 ${data.player_name} присоединился к игре! Игра начинается через 5 секунд...`);
+            }
+        }
+        
     } catch (error) {
         console.error('Ошибка обработки web_app_data:', error);
     }
-});
-
-// Обработка нажатий на кнопки
-bot.on('callback_query', (query) => {
-    const data = query.data;
-    const chatId = query.message.chat.id;
-    
-    if (data === 'decline') {
-        bot.sendMessage(chatId, '❌ Вы отклонили приглашение');
-    }
-    
-    bot.answerCallbackQuery(query.id);
 });
 
 // Веб-сервер для Render

@@ -176,29 +176,6 @@
             margin-bottom: 20px;
         }
         
-        .invite-methods {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .invite-method-btn {
-            flex: 1;
-            background: var(--tg-theme-secondary-bg-color, #ffffff);
-            border: none;
-            border-radius: 30px;
-            padding: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--tg-theme-text-color);
-            cursor: pointer;
-        }
-        
-        .invite-method-btn.active {
-            background: var(--tg-theme-button-color, #40a7e3);
-            color: white;
-        }
-        
         .username-input {
             background: var(--tg-theme-secondary-bg-color, #ffffff);
             border-radius: 30px;
@@ -230,24 +207,17 @@
             width: 100%;
         }
         
-        .invite-link-section {
-            margin-top: 20px;
-            padding: 20px;
-            background: var(--tg-theme-secondary-bg-color, #ffffff);
-            border-radius: 20px;
-            text-align: center;
-        }
-        
         .share-link-btn {
             background: var(--tg-theme-button-color, #40a7e3);
             color: white;
             border: none;
             border-radius: 30px;
-            padding: 12px 30px;
-            font-size: 16px;
+            padding: 15px;
+            font-size: 18px;
             font-weight: 600;
             cursor: pointer;
             width: 100%;
+            margin-top: 10px;
         }
         
         /* Экран ожидания */
@@ -404,6 +374,23 @@
         .cell.o {
             color: #e34f4f;
         }
+        
+        .countdown-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: var(--tg-theme-button-color, #40a7e3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 30px auto;
+        }
+        
+        .countdown-number {
+            font-size: 70px;
+            font-weight: 700;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -433,25 +420,15 @@
             <button class="back-button" id="backFromInviteBtn">← Назад</button>
             <h2>Пригласить друга</h2>
             
-            <div class="invite-methods">
-                <button class="invite-method-btn active" id="usernameMethod">По юзернейму</button>
-                <button class="invite-method-btn" id="linkMethod">По ссылке</button>
+            <div class="username-input">
+                <span>@</span>
+                <input type="text" id="usernameInput" placeholder="username друга">
             </div>
+            <button class="send-invite-btn" id="sendInviteBtn">Отправить приглашение</button>
             
-            <div id="usernameInvite">
-                <div class="username-input">
-                    <span>@</span>
-                    <input type="text" id="usernameInput" placeholder="username друга">
-                </div>
-                <button class="send-invite-btn" id="sendInviteBtn">Отправить приглашение</button>
-            </div>
+            <p style="margin: 20px 0; text-align: center; color: var(--tg-theme-hint-color);">— или —</p>
             
-            <div id="linkInvite" style="display: none;">
-                <div class="invite-link-section">
-                    <p>Отправьте эту ссылку другу в Telegram:</p>
-                    <button class="share-link-btn" id="shareInviteLink">🔗 Отправить ссылку</button>
-                </div>
-            </div>
+            <button class="share-link-btn" id="shareInviteLink">🔗 Отправить ссылку на игру</button>
         </div>
 
         <!-- Экран ожидания -->
@@ -460,6 +437,15 @@
             <div class="waiting-spinner"></div>
             <p id="waitingSubtitle">Приглашение отправлено</p>
             <button class="cancel-btn" id="cancelWaitBtn">Отмена</button>
+        </div>
+
+        <!-- Экран обратного отсчета -->
+        <div class="waiting-screen" id="countdownScreen">
+            <h2>Игра начинается!</h2>
+            <div class="countdown-circle">
+                <span class="countdown-number" id="countdownNumber">5</span>
+            </div>
+            <p id="countdownSubtitle">Первый ход за X</p>
         </div>
 
         <!-- Экран игры -->
@@ -472,13 +458,13 @@
             
             <div class="players-info">
                 <div class="player-info">
-                    <div class="player-avatar" id="playerXAvatar">👤</div>
-                    <div class="name" id="playerXName">Вы</div>
+                    <div class="player-avatar" id="playerXAvatar">❌</div>
+                    <div class="name" id="playerXName">Загрузка...</div>
                 </div>
                 <div class="vs">VS</div>
                 <div class="player-info">
-                    <div class="player-avatar" id="playerOAvatar">👤</div>
-                    <div class="name" id="playerOName">Друг</div>
+                    <div class="player-avatar" id="playerOAvatar">⭕</div>
+                    <div class="name" id="playerOName">Загрузка...</div>
                 </div>
             </div>
             
@@ -487,9 +473,7 @@
                 <span class="timer-value" id="moveTimer">10s</span>
             </div>
             
-            <div class="board" id="board">
-                <!-- Клетки заполнятся через JS -->
-            </div>
+            <div class="board" id="board"></div>
         </div>
     </div>
 
@@ -507,15 +491,14 @@
             username: tg.initDataUnsafe?.user?.username || 'player'
         };
         
-        // Проверяем, не открыли ли игру по приглашению
+        // Проверяем параметры URL
         const urlParams = new URLSearchParams(window.location.search);
         const gameId = urlParams.get('game');
-        const inviter = urlParams.get('inviter');
         
         // Состояние приложения
-        let currentScreen = 'main';
-        let invitedFriend = null;
-        let currentGameId = gameId || null;
+        let currentScreen = gameId ? 'countdown' : 'main';
+        let currentGameId = gameId;
+        let isCreator = !gameId; // Если нет gameId в URL, значит создаем игру
         let gameBoard = ['', '', '', '', '', '', '', '', ''];
         let currentPlayer = 'X';
         let gameActive = false;
@@ -524,16 +507,19 @@
         let rematchTimer = null;
         let rematchTimeLeft = 10;
         let rematchAccepted = false;
+        let countdownTimer = null;
+        let countdownValue = 5;
         
         // DOM элементы
         const mainScreen = document.getElementById('mainScreen');
         const inviteScreen = document.getElementById('inviteScreen');
         const waitingScreen = document.getElementById('waitingScreen');
+        const countdownScreen = document.getElementById('countdownScreen');
         const gameScreen = document.getElementById('gameScreen');
         const resultOverlay = document.getElementById('resultOverlay');
-        const resultModal = document.getElementById('resultModal');
         const resultTitle = document.getElementById('resultTitle');
         const rematchTimerSpan = document.getElementById('rematchTimer');
+        const countdownNumber = document.getElementById('countdownNumber');
         
         const playMainBtn = document.getElementById('playMainBtn');
         const backFromInviteBtn = document.getElementById('backFromInviteBtn');
@@ -542,10 +528,6 @@
         const acceptRematchBtn = document.getElementById('acceptRematchBtn');
         const declineRematchBtn = document.getElementById('declineRematchBtn');
         
-        const usernameMethod = document.getElementById('usernameMethod');
-        const linkMethod = document.getElementById('linkMethod');
-        const usernameInvite = document.getElementById('usernameInvite');
-        const linkInvite = document.getElementById('linkInvite');
         const usernameInput = document.getElementById('usernameInput');
         const sendInviteBtn = document.getElementById('sendInviteBtn');
         const shareInviteLink = document.getElementById('shareInviteLink');
@@ -558,18 +540,28 @@
         const board = document.getElementById('board');
         
         // Если открыли по ссылке-приглашению
-        if (gameId && inviter) {
-            playerXName.textContent = inviter;
-            playerOName.textContent = currentUser.name;
-            showScreen('game');
+        if (gameId) {
+            // Сообщаем боту, что присоединились
+            if (tg && tg.sendData) {
+                tg.sendData(JSON.stringify({
+                    action: 'join',
+                    game_id: gameId,
+                    player_name: currentUser.name,
+                    player_username: currentUser.username
+                }));
+            }
+            
+            // Показываем обратный отсчет
+            showScreen('countdown');
+            startCountdown();
         }
         
-        // Переключение экранов
         function showScreen(screen) {
             currentScreen = screen;
             mainScreen.style.display = 'none';
             inviteScreen.style.display = 'none';
             waitingScreen.style.display = 'none';
+            countdownScreen.style.display = 'none';
             gameScreen.style.display = 'none';
             
             if (screen === 'main') {
@@ -578,26 +570,13 @@
                 inviteScreen.style.display = 'flex';
             } else if (screen === 'waiting') {
                 waitingScreen.style.display = 'flex';
+            } else if (screen === 'countdown') {
+                countdownScreen.style.display = 'flex';
             } else if (screen === 'game') {
                 gameScreen.style.display = 'flex';
                 resetGame();
             }
         }
-        
-        // Переключение методов приглашения
-        usernameMethod.addEventListener('click', () => {
-            usernameMethod.classList.add('active');
-            linkMethod.classList.remove('active');
-            usernameInvite.style.display = 'block';
-            linkInvite.style.display = 'none';
-        });
-        
-        linkMethod.addEventListener('click', () => {
-            linkMethod.classList.add('active');
-            usernameMethod.classList.remove('active');
-            linkInvite.style.display = 'block';
-            usernameInvite.style.display = 'none';
-        });
         
         // Отправка приглашения по юзернейму
         sendInviteBtn.addEventListener('click', () => {
@@ -628,11 +607,6 @@
                 }));
             }
             
-            invitedFriend = { 
-                username: friendUsername,
-                gameId: newGameId
-            };
-            
             waitingTitle.textContent = `Ожидание @${friendUsername}...`;
             waitingSubtitle.textContent = 'Приглашение отправлено';
             showScreen('waiting');
@@ -641,10 +615,15 @@
         // Отправка ссылки-приглашения
         shareInviteLink.addEventListener('click', () => {
             const newGameId = Date.now() + '-' + Math.random().toString(36).substring(2, 7);
-            const directGameUrl = `https://cream44luv.github.io/tictactoe-telegram/?game=${newGameId}&inviter=${currentUser.username}`;
-            const inviteText = `🎮 Присоединяйся играть в крестики-нолики!\n\n👉 Переходи по ссылке и играй со мной:\n${directGameUrl}`;
+            const directGameUrl = `https://cream44luv.github.io/tictactoe-telegram/?game=${newGameId}`;
+            const inviteText = `🎮 Присоединяйся играть в крестики-нолики!\n\n👉 Переходи по ссылке:\n${directGameUrl}`;
             
             tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(inviteText)}`);
+            
+            currentGameId = newGameId;
+            waitingTitle.textContent = 'Ожидание друга...';
+            waitingSubtitle.textContent = 'Ссылка отправлена';
+            showScreen('waiting');
         });
         
         // Отмена ожидания
@@ -652,7 +631,31 @@
             showScreen('main');
         });
         
-        // Начало игры
+        // Обратный отсчет перед игрой
+        function startCountdown() {
+            countdownValue = 5;
+            countdownNumber.textContent = countdownValue;
+            
+            if (countdownTimer) clearInterval(countdownTimer);
+            
+            countdownTimer = setInterval(() => {
+                countdownValue--;
+                countdownNumber.textContent = countdownValue;
+                
+                if (countdownValue <= 0) {
+                    clearInterval(countdownTimer);
+                    startGame();
+                }
+            }, 1000);
+        }
+        
+        function startGame() {
+            // В реальном приложении здесь будут имена из данных игры
+            playerXName.textContent = isCreator ? currentUser.name : 'Друг';
+            playerOName.textContent = isCreator ? 'Друг' : currentUser.name;
+            showScreen('game');
+        }
+        
         function resetGame() {
             gameBoard = ['', '', '', '', '', '', '', '', ''];
             currentPlayer = 'X';
@@ -662,7 +665,6 @@
             startMoveTimer();
         }
         
-        // Рендер доски
         function renderBoard() {
             let html = '';
             for (let i = 0; i < 9; i++) {
@@ -676,7 +678,6 @@
             });
         }
         
-        // Таймер хода
         function startMoveTimer() {
             if (moveTimer) clearInterval(moveTimer);
             moveTimeLeft = 10;
@@ -704,7 +705,6 @@
             }, 1000);
         }
         
-        // Обработка клика по клетке
         function handleCellClick(e) {
             const index = e.target.dataset.index;
             

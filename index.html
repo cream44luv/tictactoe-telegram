@@ -507,9 +507,15 @@
             username: tg.initDataUnsafe?.user?.username || 'player'
         };
         
+        // Проверяем, не открыли ли игру по приглашению
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameId = urlParams.get('game');
+        const inviter = urlParams.get('inviter');
+        
         // Состояние приложения
         let currentScreen = 'main';
         let invitedFriend = null;
+        let currentGameId = gameId || null;
         let gameBoard = ['', '', '', '', '', '', '', '', ''];
         let currentPlayer = 'X';
         let gameActive = false;
@@ -550,6 +556,13 @@
         const playerOName = document.getElementById('playerOName');
         const moveTimerSpan = document.getElementById('moveTimer');
         const board = document.getElementById('board');
+        
+        // Если открыли по ссылке-приглашению
+        if (gameId && inviter) {
+            playerXName.textContent = inviter;
+            playerOName.textContent = currentUser.name;
+            showScreen('game');
+        }
         
         // Переключение экранов
         function showScreen(screen) {
@@ -599,6 +612,10 @@
                 return;
             }
             
+            // Генерируем уникальный ID игры
+            const newGameId = Date.now() + '-' + Math.random().toString(36).substring(2, 7);
+            currentGameId = newGameId;
+            
             // Отправляем приглашение через бота
             if (tg && tg.sendData) {
                 tg.sendData(JSON.stringify({
@@ -606,11 +623,16 @@
                     opponent_username: friendUsername,
                     inviter_id: currentUser.id,
                     inviter_name: currentUser.name,
-                    inviter_username: currentUser.username
+                    inviter_username: currentUser.username,
+                    game_id: newGameId
                 }));
             }
             
-            invitedFriend = { username: friendUsername };
+            invitedFriend = { 
+                username: friendUsername,
+                gameId: newGameId
+            };
+            
             waitingTitle.textContent = `Ожидание @${friendUsername}...`;
             waitingSubtitle.textContent = 'Приглашение отправлено';
             showScreen('waiting');
@@ -618,9 +640,11 @@
         
         // Отправка ссылки-приглашения
         shareInviteLink.addEventListener('click', () => {
-            const inviteText = `🎮 Присоединяйся играть в крестики-нолики!\n\nИграй со мной: @${currentUser.username}\n\nОткрой бота и нажми /start: @hrestiks_and_holes_bot`;
-            const encodedText = encodeURIComponent(inviteText);
-            tg.openTelegramLink(`https://t.me/share/url?url=${encodedText}`);
+            const newGameId = Date.now() + '-' + Math.random().toString(36).substring(2, 7);
+            const directGameUrl = `https://cream44luv.github.io/tictactoe-telegram/?game=${newGameId}&inviter=${currentUser.username}`;
+            const inviteText = `🎮 Присоединяйся играть в крестики-нолики!\n\n👉 Переходи по ссылке и играй со мной:\n${directGameUrl}`;
+            
+            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(inviteText)}`);
         });
         
         // Отмена ожидания
@@ -628,14 +652,7 @@
             showScreen('main');
         });
         
-        // Начало игры (вызывается из бота)
-        window.startGame = function(opponentName) {
-            playerXName.textContent = currentUser.name;
-            playerOName.textContent = opponentName || 'Соперник';
-            showScreen('game');
-        };
-        
-        // Сброс игры
+        // Начало игры
         function resetGame() {
             gameBoard = ['', '', '', '', '', '', '', '', ''];
             currentPlayer = 'X';
@@ -692,13 +709,11 @@
             const index = e.target.dataset.index;
             
             if (!gameActive || gameBoard[index] !== '') return;
-            if (currentPlayer !== 'X') return; // В демо X - игрок
+            if (currentPlayer !== 'X') return;
             
-            // Ход игрока
             gameBoard[index] = 'X';
             renderBoard();
             
-            // Проверка победы
             if (checkWin('X')) {
                 gameActive = false;
                 showGameResult('win', 'Победа!');
@@ -709,19 +724,15 @@
                 return;
             }
             
-            // Смена игрока
             currentPlayer = 'O';
             moveTimeLeft = 10;
             
-            // Ход друга (через бота)
             setTimeout(() => friendMove(), 800);
         }
         
-        // Ход друга (в реальном приложении будет приходить от бота)
         function friendMove() {
             if (!gameActive || currentPlayer !== 'O') return;
             
-            // Найти пустые клетки
             const emptyIndices = gameBoard.reduce((acc, cell, i) => {
                 if (cell === '') acc.push(i);
                 return acc;
@@ -729,13 +740,10 @@
             
             if (emptyIndices.length === 0) return;
             
-            // В реальности ход будет от друга через бота
-            // Сейчас для демо - случайный ход
             const randomIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
             gameBoard[randomIndex] = 'O';
             renderBoard();
             
-            // Проверка победы
             if (checkWin('O')) {
                 gameActive = false;
                 showGameResult('lose', 'Поражение!');
@@ -746,11 +754,9 @@
                 return;
             }
             
-            // Смена игрока обратно
             currentPlayer = 'X';
         }
         
-        // Проверка победы
         function checkWin(player) {
             const winPatterns = [
                 [0,1,2], [3,4,5], [6,7,8],
@@ -763,12 +769,10 @@
             );
         }
         
-        // Проверка ничьей
         function isDraw() {
             return gameBoard.every(cell => cell !== '');
         }
         
-        // Показать результат с затемнением
         function showGameResult(type, message) {
             gameActive = false;
             clearInterval(moveTimer);
@@ -788,7 +792,6 @@
             startRematchTimer();
         }
         
-        // Таймер реванша
         function startRematchTimer() {
             rematchTimeLeft = 10;
             rematchTimerSpan.textContent = rematchTimeLeft;
@@ -810,7 +813,6 @@
             }, 1000);
         }
         
-        // Принять реванш
         acceptRematchBtn.addEventListener('click', () => {
             rematchAccepted = true;
             clearInterval(rematchTimer);
@@ -818,24 +820,17 @@
             resetGame();
         });
         
-        // Отклонить реванш
         declineRematchBtn.addEventListener('click', () => {
             clearInterval(rematchTimer);
             resultOverlay.classList.remove('active');
             showScreen('main');
         });
         
-        // Обработчики навигации
         playMainBtn.addEventListener('click', () => showScreen('invite'));
         backFromInviteBtn.addEventListener('click', () => showScreen('main'));
         backFromGameBtn.addEventListener('click', () => showScreen('main'));
         
-        // Инициализация
         renderBoard();
     </script>
 </body>
-<<<<<<< HEAD
 </html>
-=======
-</html>
->>>>>>> 0954bc660407ea14b954f9956658ffe23c59fc75

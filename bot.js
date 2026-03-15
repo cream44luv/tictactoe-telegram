@@ -1,9 +1,11 @@
 // Бот для игры в крестики-нолики
 const TelegramBot = require('node-telegram-bot-api');
+const express = require('express');
+const app = express();
+
 const token = process.env.TOKEN;
 const bot = new TelegramBot(token, { polling: true });
 
-// URL твоего приложения
 const appUrl = 'https://cream44luv.github.io/tictactoe-telegram/';
 
 // Обработка команды /start
@@ -26,16 +28,20 @@ bot.on('web_app_data', (msg) => {
         
         if (data.action === 'invite') {
             const friendUsername = data.opponent_username.replace('@', '');
+            const gameId = data.game_id;
+            
+            // Ссылка прямо на игру с параметрами
+            const gameUrl = `${appUrl}?game=${gameId}&inviter=${data.inviter_username}`;
             
             // Пытаемся найти пользователя по юзернейму
             bot.getChat(`@${friendUsername}`).then((chat) => {
-                // Отправляем приглашение другу
+                // Отправляем приглашение другу с ссылкой сразу на игру
                 bot.sendMessage(chat.id, 
-                    `🎮 ${data.inviter_name} (@${data.inviter_username}) приглашает вас сыграть в крестики-нолики!\n\nИгра начнётся через 5 секунд после принятия.`, {
+                    `🎮 ${data.inviter_name} (@${data.inviter_username}) приглашает вас сыграть в крестики-нолики!\n\n👉 **Нажмите кнопку ниже, чтобы сразу перейти в игру**`, {
+                    parse_mode: 'Markdown',
                     reply_markup: {
                         inline_keyboard: [[
-                            { text: '✅ Принять игру', callback_data: `accept_${msg.chat.id}_${data.inviter_name}` },
-                            { text: '❌ Отклонить', callback_data: 'decline' }
+                            { text: '🎮 Перейти в игру', web_app: { url: gameUrl } }
                         ]]
                     }
                 });
@@ -43,10 +49,9 @@ bot.on('web_app_data', (msg) => {
                 // Подтверждение отправителю
                 bot.sendMessage(msg.chat.id, `✅ Приглашение отправлено пользователю @${friendUsername}`);
                 
-            }).catch((error) => {
-                console.error('Ошибка поиска пользователя:', error);
+            }).catch(() => {
                 bot.sendMessage(msg.chat.id, 
-                    `❌ Не удалось найти пользователя @${friendUsername}.\n\nУбедись, что:\n1️⃣ Друг написал боту команду /start\n2️⃣ Юзернейм введён правильно (без @)\n3️⃣ Друг не скрыл свой юзернейм в настройках`);
+                    `❌ Пользователь @${friendUsername} не найден или не начинал диалог с ботом.\n\n👉 Отправь ему ссылку: ${gameUrl}`);
             });
         }
     } catch (error) {
@@ -59,46 +64,22 @@ bot.on('callback_query', (query) => {
     const data = query.data;
     const chatId = query.message.chat.id;
     
-    if (data.startsWith('accept_')) {
-        const parts = data.split('_');
-        const inviterChatId = parts[1];
-        const inviterName = parts[2];
-        
-        // Сообщение тому, кто принял
-        bot.sendMessage(chatId, '✅ Вы приняли приглашение! Игра начинается...', {
-            reply_markup: {
-                inline_keyboard: [[
-                    { text: '🎮 Перейти в игру', web_app: { url: appUrl } }
-                ]]
-            }
-        });
-        
-        // Уведомление тому, кто пригласил
-        bot.sendMessage(inviterChatId, `🎮 ${query.from.first_name} принял ваше приглашение! Игра начинается!`, {
-            reply_markup: {
-                inline_keyboard: [[
-                    { text: '🎮 Перейти в игру', web_app: { url: appUrl } }
-                ]]
-            }
-        });
-        
-    } else if (data === 'decline') {
+    if (data === 'decline') {
         bot.sendMessage(chatId, '❌ Вы отклонили приглашение');
     }
     
     bot.answerCallbackQuery(query.id);
 });
 
-const express = require('express');
-const app = express();
+// Веб-сервер для Render
 const PORT = process.env.PORT || 10000;
 
 app.get('/', (req, res) => {
-    res.send('Бот работает!');
+    res.send('🤖 Бот для крестиков-ноликов работает!');
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Веб-сервер для Render запущен на порту ${PORT}`);
+    console.log(`🌐 Веб-сервер для Render запущен на порту ${PORT}`);
 });
 
 console.log('🤖 Бот запущен и готов к работе!');

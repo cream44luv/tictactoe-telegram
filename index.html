@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -835,3 +836,842 @@
     </script>
 </body>
 </html>
+=======
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Крестики-нолики - Telegram</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        body {
+            min-height: 100vh;
+            background: var(--tg-theme-bg-color, #f0f2f5);
+            color: var(--tg-theme-text-color, #000000);
+            transition: background 0.3s, color 0.3s;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .app {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px 16px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        /* Затемнение фона */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .overlay.active {
+            display: flex;
+        }
+        
+        /* Модальное окно результата */
+        .result-modal {
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
+            border-radius: 30px;
+            padding: 40px 30px;
+            text-align: center;
+            max-width: 300px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            animation: popIn 0.3s ease;
+        }
+        
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .result-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .result-title.win {
+            color: #31c48d;
+        }
+        
+        .result-title.lose {
+            color: #e34f4f;
+        }
+        
+        .result-title.draw {
+            color: #f59e0b;
+        }
+        
+        .rematch-timer {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--tg-theme-button-color, #40a7e3);
+            margin: 20px 0;
+        }
+        
+        .rematch-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .rematch-btn {
+            flex: 1;
+            background: var(--tg-theme-button-color, #40a7e3);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .rematch-btn.secondary {
+            background: var(--tg-theme-hint-color, #9aa3ad);
+        }
+        
+        /* Главный экран */
+        .main-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 80vh;
+            text-align: center;
+        }
+        
+        .main-screen h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #40a7e3, #e34f4f);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .main-screen p {
+            font-size: 18px;
+            color: var(--tg-theme-hint-color, #6c757d);
+            margin-bottom: 50px;
+        }
+        
+        .play-button {
+            background: var(--tg-theme-button-color, #40a7e3);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            border-radius: 60px;
+            padding: 20px 60px;
+            font-size: 28px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(64, 167, 227, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .play-button:active {
+            transform: scale(0.95);
+            box-shadow: 0 5px 10px rgba(64, 167, 227, 0.4);
+        }
+        
+        /* Экран приглашения */
+        .invite-screen {
+            display: none;
+            flex-direction: column;
+        }
+        
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--tg-theme-text-color);
+            cursor: pointer;
+            margin-bottom: 20px;
+            align-self: flex-start;
+        }
+        
+        .invite-screen h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        
+        .invite-methods {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .invite-method-btn {
+            flex: 1;
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
+            border: none;
+            border-radius: 30px;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--tg-theme-text-color);
+            cursor: pointer;
+        }
+        
+        .invite-method-btn.active {
+            background: var(--tg-theme-button-color, #40a7e3);
+            color: white;
+        }
+        
+        .username-input {
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
+            border-radius: 30px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .username-input input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            outline: none;
+            font-size: 16px;
+            color: var(--tg-theme-text-color);
+        }
+        
+        .send-invite-btn {
+            background: var(--tg-theme-button-color, #40a7e3);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        .invite-link-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
+            border-radius: 20px;
+            text-align: center;
+        }
+        
+        .share-link-btn {
+            background: var(--tg-theme-button-color, #40a7e3);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        /* Экран ожидания */
+        .waiting-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 80vh;
+            text-align: center;
+        }
+        
+        .waiting-screen h2 {
+            font-size: 28px;
+            margin-bottom: 30px;
+        }
+        
+        .waiting-spinner {
+            width: 80px;
+            height: 80px;
+            border: 8px solid var(--tg-theme-secondary-bg-color, #f0f2f5);
+            border-top: 8px solid var(--tg-theme-button-color, #40a7e3);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 30px 0;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .cancel-btn {
+            background: none;
+            border: 2px solid var(--tg-theme-hint-color, #9aa3ad);
+            color: var(--tg-theme-hint-color);
+            border-radius: 30px;
+            padding: 12px 40px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 30px;
+        }
+        
+        /* Экран игры */
+        .game-screen {
+            display: none;
+            flex-direction: column;
+        }
+        
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .game-header button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--tg-theme-text-color);
+            cursor: pointer;
+        }
+        
+        .players-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+        }
+        
+        .player-info {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .player-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #40a7e3, #8a3ffc);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0 auto 10px;
+        }
+        
+        .player-info .name {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .vs {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--tg-theme-hint-color);
+            margin: 0 10px;
+        }
+        
+        .timer-container {
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
+            border-radius: 50px;
+            padding: 15px;
+            margin: 20px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .timer-label {
+            font-size: 16px;
+            color: var(--tg-theme-hint-color);
+        }
+        
+        .timer-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--tg-theme-button-color, #40a7e3);
+        }
+        
+        .timer-value.warning {
+            color: #e34f4f;
+        }
+        
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            aspect-ratio: 1;
+            margin: 20px 0 30px;
+        }
+        
+        .cell {
+            aspect-ratio: 1;
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .cell.x {
+            color: #40a7e3;
+        }
+        
+        .cell.o {
+            color: #e34f4f;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Затемнение и модальное окно результата -->
+        <div class="overlay" id="resultOverlay">
+            <div class="result-modal" id="resultModal">
+                <div class="result-title" id="resultTitle">Победа!</div>
+                <div class="rematch-timer" id="rematchTimer">10</div>
+                <p>Ожидание реванша...</p>
+                <div class="rematch-buttons">
+                    <button class="rematch-btn" id="acceptRematchBtn">✅ Принять</button>
+                    <button class="rematch-btn secondary" id="declineRematchBtn">❌ Выйти</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Главный экран -->
+        <div class="main-screen" id="mainScreen">
+            <h1>❌⭕</h1>
+            <p>Нажмите "Играть", чтобы пригласить друга</p>
+            <button class="play-button" id="playMainBtn">Играть</button>
+        </div>
+
+        <!-- Экран приглашения -->
+        <div class="invite-screen" id="inviteScreen">
+            <button class="back-button" id="backFromInviteBtn">← Назад</button>
+            <h2>Пригласить друга</h2>
+            
+            <div class="invite-methods">
+                <button class="invite-method-btn active" id="usernameMethod">По юзернейму</button>
+                <button class="invite-method-btn" id="linkMethod">По ссылке</button>
+            </div>
+            
+            <div id="usernameInvite">
+                <div class="username-input">
+                    <span>@</span>
+                    <input type="text" id="usernameInput" placeholder="username друга">
+                </div>
+                <button class="send-invite-btn" id="sendInviteBtn">Отправить приглашение</button>
+            </div>
+            
+            <div id="linkInvite" style="display: none;">
+                <div class="invite-link-section">
+                    <p>Отправьте эту ссылку другу в Telegram:</p>
+                    <button class="share-link-btn" id="shareInviteLink">🔗 Отправить ссылку</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Экран ожидания -->
+        <div class="waiting-screen" id="waitingScreen">
+            <h2 id="waitingTitle">Ожидание друга...</h2>
+            <div class="waiting-spinner"></div>
+            <p id="waitingSubtitle">Приглашение отправлено</p>
+            <button class="cancel-btn" id="cancelWaitBtn">Отмена</button>
+        </div>
+
+        <!-- Экран игры -->
+        <div class="game-screen" id="gameScreen">
+            <div class="game-header">
+                <button id="backFromGameBtn">←</button>
+                <span>Игра</span>
+                <div style="width: 24px;"></div>
+            </div>
+            
+            <div class="players-info">
+                <div class="player-info">
+                    <div class="player-avatar" id="playerXAvatar">👤</div>
+                    <div class="name" id="playerXName">Вы</div>
+                </div>
+                <div class="vs">VS</div>
+                <div class="player-info">
+                    <div class="player-avatar" id="playerOAvatar">👤</div>
+                    <div class="name" id="playerOName">Друг</div>
+                </div>
+            </div>
+            
+            <div class="timer-container">
+                <span class="timer-label">⏳ Время на ход</span>
+                <span class="timer-value" id="moveTimer">10s</span>
+            </div>
+            
+            <div class="board" id="board">
+                <!-- Клетки заполнятся через JS -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        // Инициализация Telegram
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        
+        // Данные текущего пользователя
+        const currentUser = {
+            id: tg.initDataUnsafe?.user?.id || Math.floor(Math.random() * 1000000),
+            name: tg.initDataUnsafe?.user?.first_name || 'Игрок',
+            username: tg.initDataUnsafe?.user?.username || 'player'
+        };
+        
+        // Состояние приложения
+        let currentScreen = 'main';
+        let invitedFriend = null;
+        let gameBoard = ['', '', '', '', '', '', '', '', ''];
+        let currentPlayer = 'X';
+        let gameActive = false;
+        let moveTimer = null;
+        let moveTimeLeft = 10;
+        let rematchTimer = null;
+        let rematchTimeLeft = 10;
+        let rematchAccepted = false;
+        
+        // DOM элементы
+        const mainScreen = document.getElementById('mainScreen');
+        const inviteScreen = document.getElementById('inviteScreen');
+        const waitingScreen = document.getElementById('waitingScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const resultOverlay = document.getElementById('resultOverlay');
+        const resultModal = document.getElementById('resultModal');
+        const resultTitle = document.getElementById('resultTitle');
+        const rematchTimerSpan = document.getElementById('rematchTimer');
+        
+        const playMainBtn = document.getElementById('playMainBtn');
+        const backFromInviteBtn = document.getElementById('backFromInviteBtn');
+        const backFromGameBtn = document.getElementById('backFromGameBtn');
+        const cancelWaitBtn = document.getElementById('cancelWaitBtn');
+        const acceptRematchBtn = document.getElementById('acceptRematchBtn');
+        const declineRematchBtn = document.getElementById('declineRematchBtn');
+        
+        const usernameMethod = document.getElementById('usernameMethod');
+        const linkMethod = document.getElementById('linkMethod');
+        const usernameInvite = document.getElementById('usernameInvite');
+        const linkInvite = document.getElementById('linkInvite');
+        const usernameInput = document.getElementById('usernameInput');
+        const sendInviteBtn = document.getElementById('sendInviteBtn');
+        const shareInviteLink = document.getElementById('shareInviteLink');
+        
+        const waitingTitle = document.getElementById('waitingTitle');
+        const waitingSubtitle = document.getElementById('waitingSubtitle');
+        const playerXName = document.getElementById('playerXName');
+        const playerOName = document.getElementById('playerOName');
+        const moveTimerSpan = document.getElementById('moveTimer');
+        const board = document.getElementById('board');
+        
+        // Переключение экранов
+        function showScreen(screen) {
+            currentScreen = screen;
+            mainScreen.style.display = 'none';
+            inviteScreen.style.display = 'none';
+            waitingScreen.style.display = 'none';
+            gameScreen.style.display = 'none';
+            
+            if (screen === 'main') {
+                mainScreen.style.display = 'flex';
+            } else if (screen === 'invite') {
+                inviteScreen.style.display = 'flex';
+            } else if (screen === 'waiting') {
+                waitingScreen.style.display = 'flex';
+            } else if (screen === 'game') {
+                gameScreen.style.display = 'flex';
+                resetGame();
+            }
+        }
+        
+        // Переключение методов приглашения
+        usernameMethod.addEventListener('click', () => {
+            usernameMethod.classList.add('active');
+            linkMethod.classList.remove('active');
+            usernameInvite.style.display = 'block';
+            linkInvite.style.display = 'none';
+        });
+        
+        linkMethod.addEventListener('click', () => {
+            linkMethod.classList.add('active');
+            usernameMethod.classList.remove('active');
+            linkInvite.style.display = 'block';
+            usernameInvite.style.display = 'none';
+        });
+        
+        // Отправка приглашения по юзернейму
+        sendInviteBtn.addEventListener('click', () => {
+            const friendUsername = usernameInput.value.trim().replace('@', '');
+            
+            if (!friendUsername) {
+                tg.showPopup({
+                    title: 'Ошибка',
+                    message: 'Введите username друга',
+                    buttons: [{ type: 'ok' }]
+                });
+                return;
+            }
+            
+            // Отправляем приглашение через бота
+            if (tg && tg.sendData) {
+                tg.sendData(JSON.stringify({
+                    action: 'invite',
+                    opponent_username: friendUsername,
+                    inviter_id: currentUser.id,
+                    inviter_name: currentUser.name,
+                    inviter_username: currentUser.username
+                }));
+            }
+            
+            invitedFriend = { username: friendUsername };
+            waitingTitle.textContent = `Ожидание @${friendUsername}...`;
+            waitingSubtitle.textContent = 'Приглашение отправлено';
+            showScreen('waiting');
+        });
+        
+        // Отправка ссылки-приглашения
+        shareInviteLink.addEventListener('click', () => {
+            const inviteText = `🎮 Присоединяйся играть в крестики-нолики!\n\nИграй со мной: @${currentUser.username}\n\nОткрой бота и нажми /start: @hrestiks_and_holes_bot`;
+            const encodedText = encodeURIComponent(inviteText);
+            tg.openTelegramLink(`https://t.me/share/url?url=${encodedText}`);
+        });
+        
+        // Отмена ожидания
+        cancelWaitBtn.addEventListener('click', () => {
+            showScreen('main');
+        });
+        
+        // Начало игры (вызывается из бота)
+        window.startGame = function(opponentName) {
+            playerXName.textContent = currentUser.name;
+            playerOName.textContent = opponentName || 'Соперник';
+            showScreen('game');
+        };
+        
+        // Сброс игры
+        function resetGame() {
+            gameBoard = ['', '', '', '', '', '', '', '', ''];
+            currentPlayer = 'X';
+            gameActive = true;
+            moveTimeLeft = 10;
+            renderBoard();
+            startMoveTimer();
+        }
+        
+        // Рендер доски
+        function renderBoard() {
+            let html = '';
+            for (let i = 0; i < 9; i++) {
+                const cellClass = gameBoard[i] ? `cell ${gameBoard[i].toLowerCase()}` : 'cell';
+                html += `<div class="${cellClass}" data-index="${i}">${gameBoard[i]}</div>`;
+            }
+            board.innerHTML = html;
+            
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.addEventListener('click', handleCellClick);
+            });
+        }
+        
+        // Таймер хода
+        function startMoveTimer() {
+            if (moveTimer) clearInterval(moveTimer);
+            moveTimeLeft = 10;
+            moveTimerSpan.textContent = `${moveTimeLeft}s`;
+            moveTimerSpan.classList.remove('warning');
+            
+            moveTimer = setInterval(() => {
+                if (!gameActive) {
+                    clearInterval(moveTimer);
+                    return;
+                }
+                
+                moveTimeLeft--;
+                moveTimerSpan.textContent = `${moveTimeLeft}s`;
+                
+                if (moveTimeLeft <= 3) {
+                    moveTimerSpan.classList.add('warning');
+                }
+                
+                if (moveTimeLeft <= 0) {
+                    clearInterval(moveTimer);
+                    gameActive = false;
+                    showGameResult('lose', 'Время вышло!');
+                }
+            }, 1000);
+        }
+        
+        // Обработка клика по клетке
+        function handleCellClick(e) {
+            const index = e.target.dataset.index;
+            
+            if (!gameActive || gameBoard[index] !== '') return;
+            if (currentPlayer !== 'X') return; // В демо X - игрок
+            
+            // Ход игрока
+            gameBoard[index] = 'X';
+            renderBoard();
+            
+            // Проверка победы
+            if (checkWin('X')) {
+                gameActive = false;
+                showGameResult('win', 'Победа!');
+                return;
+            } else if (isDraw()) {
+                gameActive = false;
+                showGameResult('draw', 'Ничья!');
+                return;
+            }
+            
+            // Смена игрока
+            currentPlayer = 'O';
+            moveTimeLeft = 10;
+            
+            // Ход друга (через бота)
+            setTimeout(() => friendMove(), 800);
+        }
+        
+        // Ход друга (в реальном приложении будет приходить от бота)
+        function friendMove() {
+            if (!gameActive || currentPlayer !== 'O') return;
+            
+            // Найти пустые клетки
+            const emptyIndices = gameBoard.reduce((acc, cell, i) => {
+                if (cell === '') acc.push(i);
+                return acc;
+            }, []);
+            
+            if (emptyIndices.length === 0) return;
+            
+            // В реальности ход будет от друга через бота
+            // Сейчас для демо - случайный ход
+            const randomIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+            gameBoard[randomIndex] = 'O';
+            renderBoard();
+            
+            // Проверка победы
+            if (checkWin('O')) {
+                gameActive = false;
+                showGameResult('lose', 'Поражение!');
+                return;
+            } else if (isDraw()) {
+                gameActive = false;
+                showGameResult('draw', 'Ничья!');
+                return;
+            }
+            
+            // Смена игрока обратно
+            currentPlayer = 'X';
+        }
+        
+        // Проверка победы
+        function checkWin(player) {
+            const winPatterns = [
+                [0,1,2], [3,4,5], [6,7,8],
+                [0,3,6], [1,4,7], [2,5,8],
+                [0,4,8], [2,4,6]
+            ];
+            
+            return winPatterns.some(pattern => 
+                pattern.every(i => gameBoard[i] === player)
+            );
+        }
+        
+        // Проверка ничьей
+        function isDraw() {
+            return gameBoard.every(cell => cell !== '');
+        }
+        
+        // Показать результат с затемнением
+        function showGameResult(type, message) {
+            gameActive = false;
+            clearInterval(moveTimer);
+            
+            resultTitle.textContent = message;
+            resultTitle.className = 'result-title';
+            
+            if (type === 'win') {
+                resultTitle.classList.add('win');
+            } else if (type === 'lose') {
+                resultTitle.classList.add('lose');
+            } else {
+                resultTitle.classList.add('draw');
+            }
+            
+            resultOverlay.classList.add('active');
+            startRematchTimer();
+        }
+        
+        // Таймер реванша
+        function startRematchTimer() {
+            rematchTimeLeft = 10;
+            rematchTimerSpan.textContent = rematchTimeLeft;
+            rematchAccepted = false;
+            
+            if (rematchTimer) clearInterval(rematchTimer);
+            
+            rematchTimer = setInterval(() => {
+                rematchTimeLeft--;
+                rematchTimerSpan.textContent = rematchTimeLeft;
+                
+                if (rematchTimeLeft <= 0) {
+                    clearInterval(rematchTimer);
+                    if (!rematchAccepted) {
+                        resultOverlay.classList.remove('active');
+                        showScreen('main');
+                    }
+                }
+            }, 1000);
+        }
+        
+        // Принять реванш
+        acceptRematchBtn.addEventListener('click', () => {
+            rematchAccepted = true;
+            clearInterval(rematchTimer);
+            resultOverlay.classList.remove('active');
+            resetGame();
+        });
+        
+        // Отклонить реванш
+        declineRematchBtn.addEventListener('click', () => {
+            clearInterval(rematchTimer);
+            resultOverlay.classList.remove('active');
+            showScreen('main');
+        });
+        
+        // Обработчики навигации
+        playMainBtn.addEventListener('click', () => showScreen('invite'));
+        backFromInviteBtn.addEventListener('click', () => showScreen('main'));
+        backFromGameBtn.addEventListener('click', () => showScreen('main'));
+        
+        // Инициализация
+        renderBoard();
+    </script>
+</body>
+</html>
+>>>>>>> c72e856ebf6722dbd0919a87dd5fba6dce2ce225

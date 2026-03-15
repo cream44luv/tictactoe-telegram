@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Крестики-нолики - Telegram</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        body {
+            min-height: 100vh;
+            background: var(--tg-theme-bg-color, #f0f2f5);
+            color: var(--tg-theme-text-color, #000000);
+            transition: background 0.3s, color 0.3s;
+            padding: 0;
+            margin: 0;
+        }
+        
+        /* Контейнер приложения */
+        .app {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px 16px;
+            padding-bottom: 80px;
+        }
+        
+        /* Заголовок */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding: 0 4px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #40a7e3, #8a3ffc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .profile-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--tg-theme-button-color, #40a7e3);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+        }
+        
+        /* Главный экран (Start) */
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 70vh;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .welcome-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+        
+        .welcome-screen h2 {
+            font-size: 32px;
+            margin-bottom: 12px;
+            color: var(--tg-theme-text-color);
+        }
+        
+        .welcome-screen p {
+            font-size: 16px;
+            color: var(--tg-theme-hint-color, #6c757d);
+            margin-bottom: 40px;
+            max-width: 280px;
+        }
+        
+        .play-button {
+            background: var(--tg-theme-button-color, #40a7e3);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            border-radius: 30px;
+            padding: 16px 48px;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 8px 16px rgba(64, 167, 227, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .play-button:active {
+            transform: scale(0.95);
+            box-shadow: 0 4px 8px rgba(64, 167, 227, 0.3);
+        }
+        
+        /* Экран выбора соперника */
+        .opponent-screen {
+            display: none;
+        }
+        
+        /* Вкладки */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
+            padding: 6px;
+            border-radius: 30px;
+        }
+        
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px 0;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--tg-theme-hint-color, #6c757d);
+        }
+        
+        .tab.active {
+            background: var(--tg-theme-button-color, #40a7e3);
+            color: white;
+        }
+        
+        /* Поиск */
+        .search-box {
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
+            border-radius: 30px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .search-box input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            outline: none;
+            font-size: 16px;
+            color: var(--tg-theme-text-color);
+        }
+        
+        .search-box input::placeholder {
+            color: var(--tg-theme-hint-color, #9aa3ad);
+        }
+        
+        .search-icon {
+            color: var(--tg-theme-hint-color, #9aa3ad);
+            font-size: 18px;
+        }
+        
+        /* Список игроков */
+        .players-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 60vh;
+            overflow-y: auto;
+            padding: 4px;
+        }
+        
+        .player-card {
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
+            border-radius: 20px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .player-card:active {
+            transform: scale(0.98);
+        }
+        
+        .player-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #40a7e3, #8a3ffc);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            position: relative;
+        }
+        
+        .online-status {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid var(--tg-theme-secondary-bg-color, #ffffff);
+        }
+        
+        .online-status.online {
+            background: #31c48d;
+        }
+        
+        .online-status.offline {
+            background: #9aa3ad;
+        }
+        
+        .player-info {
+            flex: 1;
+        }
+        
+        .player-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .player-stats {
+            font-size: 13px;
+            color: var(--tg-theme-hint-color, #6c757d);
+        }
+        
+        .invite-btn {
+            background: var(--tg-theme-button-color, #40a7e3);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            opacity: 0.9;
+        }
+        
+        .invite-btn:active {
+            opacity: 1;
+        }
+        
+        /* Экран игры */
+        .game-screen {
+            display: none;
+        }
+        
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .back-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--tg-theme-text-color);
+            padding: 8px;
+        }
+        
+        .game-players {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .game-player {
+            text-align: center;
+        }
+        
+        .game-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #40a7e3, #8a3ffc);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0 auto 8px;
+        }
+        
+        .game-player-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .game-vs {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--tg-theme-hint-color);
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            aspect-ratio: 1;
+            max-width: 320px;
+            margin: 30px auto;
+        }
+        
+        .cell {
+            aspect-ratio: 1;
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+        }
+        
+        .cell:active {
+            transform: scale(0.95);
+        }
+        
+        .cell.x {
+            color: #40a7e3; /* Синий для крестиков */
+        }
+        
+        .cell.o {
+            color: #e34f4f; /* Красный для ноликов */
+        }
+        
+        .game-turn {
+            text-align: center;
+            font-size: 18px;
+            margin: 20px 0;
+            padding: 12px;
+            border-radius: 30px;
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
+        }
+        
+        .reset-btn {
+            background: var(--tg-theme-button-color, #40a7e3);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 12px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: fit-content;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Шапка -->
+        <div class="header">
+            <h1>⚔️ TicTacToe</h1>
+            <button class="profile-btn" id="profileBtn">👤</button>
+        </div>
+
+        <!-- Главный экран (приветствие) -->
+        <div class="welcome-screen" id="welcomeScreen">
+            <div class="welcome-icon">🎮</div>
+            <h2>Давай играть!</h2>
+            <p>Найди друзей и брось им вызов в крестики-нолики</p>
+            <button class="play-button" id="playButton">Играть</button>
+        </div>
+
+        <!-- Экран выбора соперника -->
+        <div class="opponent-screen" id="opponentScreen">
+            <!-- Вкладки -->
+            <div class="tabs">
+                <div class="tab active" data-tab="all">Все игроки</div>
+                <div class="tab" data-tab="friends">Друзья</div>
+            </div>
+
+            <!-- Поиск -->
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="Поиск по нику...">
+            </div>
+
+            <!-- Список игроков (будет заполняться через JS) -->
+            <div class="players-list" id="playersList"></div>
+        </div>
+
+        <!-- Экран игры -->
+        <div class="game-screen" id="gameScreen">
+            <div class="game-header">
+                <button class="back-btn" id="backFromGameBtn">←</button>
+                <span>Игра с @username</span>
+                <div style="width: 24px;"></div>
+            </div>
+
+            <div class="game-players">
+                <div class="game-player">
+                    <div class="game-avatar" id="playerXAvatar">👤</div>
+                    <div class="game-player-name" id="playerXName">Вы</div>
+                </div>
+                <div class="game-vs">VS</div>
+                <div class="game-player">
+                    <div class="game-avatar" id="playerOAvatar">👤</div>
+                    <div class="game-player-name" id="playerOName">Соперник</div>
+                </div>
+            </div>
+
+            <div class="game-turn" id="gameTurn">Ваш ход (X)</div>
+
+            <div class="game-board" id="gameBoard">
+                <!-- 9 клеток будут созданы через JS -->
+            </div>
+
+            <button class="reset-btn" id="resetGameBtn" style="display: none;">Новая игра</button>
+        </div>
+    </div>
+
+    <!-- Подключаем Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <script>
+        // Инициализация Telegram
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand(); // Растягиваем на весь экран
+        
+        // Данные пользователя из Telegram
+        const user = tg.initDataUnsafe?.user || {
+            id: Math.floor(Math.random() * 1000000),
+            first_name: 'Игрок',
+            username: 'player'
+        };
+        
+        // Состояние приложения
+        let currentScreen = 'welcome'; // welcome, opponent, game
+        let currentTab = 'all';
+        let selectedOpponent = null;
+        let gameBoard = ['', '', '', '', '', '', '', '', ''];
+        let currentPlayer = 'X';
+        let gameActive = true;
+        
+        // Моковые данные игроков (в реальном прижении будут приходить с сервера)
+        const mockPlayers = [
+            { id: 1, name: 'Алексей', username: 'alex', avatar: 'А', online: true, wins: 15, losses: 7 },
+            { id: 2, name: 'Мария', username: 'masha', avatar: 'М', online: true, wins: 23, losses: 4 },
+            { id: 3, name: 'Дмитрий', username: 'dimon', avatar: 'Д', online: false, wins: 8, losses: 12 },
+            { id: 4, name: 'Елена', username: 'lena', avatar: 'Е', online: true, wins: 31, losses: 9 },
+            { id: 5, name: 'Сергей', username: 'serg', avatar: 'С', online: false, wins: 5, losses: 3 },
+            { id: 6, name: 'Анна', username: 'anna', avatar: 'А', online: true, wins: 17, losses: 11 },
+            { id: 7, name: 'Павел', username: 'pavel', avatar: 'П', online: false, wins: 9, losses: 14 },
+            { id: 8, name: 'Ольга', username: 'olga', avatar: 'О', online: true, wins: 42, losses: 8 },
+        ];
+        
+        // Друзья (в реальном приложении будут из Telegram API)
+        const friends = [1, 2, 4, 6, 8]; // ID друзей
+        
+        // Элементы DOM
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const opponentScreen = document.getElementById('opponentScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const playButton = document.getElementById('playButton');
+        const backFromGameBtn = document.getElementById('backFromGameBtn');
+        const playersList = document.getElementById('playersList');
+        const searchInput = document.getElementById('searchInput');
+        const tabs = document.querySelectorAll('.tab');
+        const gameBoardElement = document.getElementById('gameBoard');
+        const gameTurn = document.getElementById('gameTurn');
+        const resetGameBtn = document.getElementById('resetGameBtn');
+        const playerXName = document.getElementById('playerXName');
+        const playerOName = document.getElementById('playerOName');
+        
+        // Переключение экранов
+        function showScreen(screenName) {
+            currentScreen = screenName;
+            welcomeScreen.style.display = 'none';
+            opponentScreen.style.display = 'none';
+            gameScreen.style.display = 'none';
+            
+            if (screenName === 'welcome') {
+                welcomeScreen.style.display = 'flex';
+            } else if (screenName === 'opponent') {
+                opponentScreen.style.display = 'block';
+                renderPlayersList();
+            } else if (screenName === 'game') {
+                gameScreen.style.display = 'block';
+                resetGame();
+            }
+        }
+        
+        // Рендер списка игроков
+        function renderPlayersList() {
+            const searchTerm = searchInput.value.toLowerCase();
+            
+            // Фильтруем игроков
+            let filteredPlayers = mockPlayers.filter(player => 
+                player.name.toLowerCase().includes(searchTerm) || 
+                player.username.toLowerCase().includes(searchTerm)
+            );
+            
+            // Если вкладка "Друзья", оставляем только друзей
+            if (currentTab === 'friends') {
+                filteredPlayers = filteredPlayers.filter(player => friends.includes(player.id));
+            }
+            
+            // Отрисовка
+            playersList.innerHTML = filteredPlayers.map(player => `
+                <div class="player-card" data-id="${player.id}" data-username="${player.username}">
+                    <div class="player-avatar">
+                        ${player.avatar}
+                        <span class="online-status ${player.online ? 'online' : 'offline'}"></span>
+                    </div>
+                    <div class="player-info">
+                        <div class="player-name">${player.name}</div>
+                        <div class="player-stats">@${player.username} • ${player.wins} побед</div>
+                    </div>
+                    <button class="invite-btn" onclick="invitePlayer(${player.id}, '${player.username}')">
+                        ${player.online ? 'Играть' : 'Пригласить'}
+                    </button>
+                </div>
+            `).join('');
+        }
+        
+        // Функция приглашения игрока
+        window.invitePlayer = function(playerId, username) {
+            const player = mockPlayers.find(p => p.id === playerId);
+            selectedOpponent = player;
+            
+            // Отправляем сообщение через бота
+            if (tg && tg.sendData) {
+                // Формируем данные для бота
+                const gameData = {
+                    action: 'invite',
+                    opponent_id: playerId,
+                    opponent_username: username,
+                    inviter_id: user.id,
+                    inviter_name: user.first_name
+                };
+                tg.sendData(JSON.stringify(gameData));
+            }
+            
+            // Показываем уведомление
+            tg.showPopup({
+                title: 'Приглашение отправлено',
+                message: `Приглашение для @${username} отправлено! Как только он примет игру, вы начнете.`,
+                buttons: [{type: 'ok'}]
+            });
+            
+            // Для демо сразу переходим в игру
+            startGameWithOpponent(player);
+        };
+        
+        // Начать игру с соперником
+        function startGameWithOpponent(opponent) {
+            selectedOpponent = opponent;
+            playerXName.textContent = user.first_name || 'Вы';
+            playerOName.textContent = opponent.name;
+            showScreen('game');
+        }
+        
+        // Сброс игры
+        function resetGame() {
+            gameBoard = ['', '', '', '', '', '', '', '', ''];
+            currentPlayer = 'X';
+            gameActive = true;
+            renderBoard();
+            updateTurn();
+        }
+        
+        // Отрисовка доски
+        function renderBoard() {
+            let boardHtml = '';
+            for (let i = 0; i < 9; i++) {
+                const cellClass = gameBoard[i] ? `cell ${gameBoard[i].toLowerCase()}` : 'cell';
+                boardHtml += `<div class="${cellClass}" data-index="${i}">${gameBoard[i]}</div>`;
+            }
+            gameBoardElement.innerHTML = boardHtml;
+            
+            // Добавляем обработчики
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.addEventListener('click', handleCellClick);
+            });
+        }
+        
+        // Обработчик клика по клетке
+        function handleCellClick(e) {
+            const index = e.target.dataset.index;
+            
+            if (!gameActive || gameBoard[index] !== '') return;
+            if (currentPlayer !== 'X') return; // В демо всегда ходит X (для теста)
+            
+            // Делаем ход
+            gameBoard[index] = currentPlayer;
+            renderBoard();
+            
+            // Проверяем победу
+            const winner = checkWinner();
+            if (winner) {
+                gameActive = false;
+                if (winner === 'draw') {
+                    gameTurn.textContent = 'Ничья! 🤝';
+                } else {
+                    gameTurn.textContent = winner === 'X' ? 'Вы победили! 🎉' : 'Соперник победил!';
+                }
+                resetGameBtn.style.display = 'block';
+                return;
+            }
+            
+            // Меняем игрока
+            currentPlayer = 'O';
+            updateTurn();
+            
+            // Имитация хода соперника через 1 секунду
+            if (gameActive) {
+                setTimeout(() => {
+                    makeOpponentMove();
+                }, 1000);
+            }
+        }
+        
+        // Ход соперника (демо)
+        function makeOpponentMove() {
+            if (!gameActive || currentPlayer !== 'O') return;
+            
+            // Находим пустые клетки
+            const emptyCells = gameBoard.reduce((acc, cell, index) => {
+                if (cell === '') acc.push(index);
+                return acc;
+            }, []);
+            
+            if (emptyCells.length === 0) return;
+            
+            // Выбираем случайную клетку
+            const randomIndex = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            gameBoard[randomIndex] = 'O';
+            renderBoard();
+            
+            // Проверяем победу
+            const winner = checkWinner();
+            if (winner) {
+                gameActive = false;
+                if (winner === 'draw') {
+                    gameTurn.textContent = 'Ничья! 🤝';
+                } else {
+                    gameTurn.textContent = winner === 'X' ? 'Вы победили! 🎉' : 'Соперник победил!';
+                }
+                resetGameBtn.style.display = 'block';
+                return;
+            }
+            
+            // Меняем игрока обратно
+            currentPlayer = 'X';
+            updateTurn();
+        }
+        
+        // Обновление текста хода
+        function updateTurn() {
+            if (!gameActive) return;
+            
+            if (currentPlayer === 'X') {
+                gameTurn.innerHTML = '<span class="turn-indicator">Ваш ход (X) 🔵</span>';
+            } else {
+                gameTurn.innerHTML = '<span class="turn-indicator opponent-turn">Ход соперника (O) 🔴</span>';
+            }
+        }
+        
+        // Проверка победителя
+        function checkWinner() {
+            const winPatterns = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
+            ];
+            
+            for (let pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                if (gameBoard[a] && gameBoard[a] === gameBoard[b] && gameBoard[a] === gameBoard[c]) {
+                    return gameBoard[a];
+                }
+            }
+            
+            if (gameBoard.every(cell => cell !== '')) return 'draw';
+            return null;
+        }
+        
+        // Обработчики событий
+        playButton.addEventListener('click', () => showScreen('opponent'));
+        
+        backFromGameBtn.addEventListener('click', () => showScreen('opponent'));
+        
+        resetGameBtn.addEventListener('click', resetGame);
+        
+        // Переключение вкладок
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentTab = tab.dataset.tab;
+                renderPlayersList();
+            });
+        });
+        
+        // Поиск
+        searchInput.addEventListener('input', renderPlayersList);
+        
+        // Профиль
+        document.getElementById('profileBtn').addEventListener('click', () => {
+            tg.showPopup({
+                title: 'Профиль',
+                message: `Вы: ${user.first_name}\nID: ${user.id}`,
+                buttons: [{type: 'close'}]
+            });
+        });
+        
+        // Инициализация
+        renderBoard();
+        
+        // Настройка главной кнопки Telegram
+        tg.MainButton.setText('Закрыть');
+        tg.MainButton.onClick(() => tg.close());
+    </script>
+</body>
+</html>

@@ -1,1677 +1,995 @@
-<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Крестики-нолики - Telegram</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📚 Мои заметки</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
         }
-        
+
         body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--tg-theme-bg-color, #f8f9fa);
+            color: var(--tg-theme-text-color, #212529);
             min-height: 100vh;
-            background: var(--tg-theme-bg-color, #f0f2f5);
-            color: var(--tg-theme-text-color, #000000);
-            transition: background 0.3s, color 0.3s;
-            padding: 0;
-            margin: 0;
+            padding: 0 0 80px 0;
         }
-        
-        .app {
-            max-width: 500px;
-            margin: 0 auto;
-            padding: 20px 16px;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            border-radius: 0 0 30px 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
             position: relative;
         }
-        
-        /* Затемнение фона */
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(5px);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        
-        .overlay.active {
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
             display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        
-        /* Модальное окно результата */
-        .result-modal {
-            background: var(--tg-theme-secondary-bg-color, #ffffff);
-            border-radius: 30px;
-            padding: 40px 30px;
-            text-align: center;
-            max-width: 300px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            animation: popIn 0.3s ease;
+
+        .header p {
+            opacity: 0.9;
+            font-size: 16px;
         }
-        
-        @keyframes popIn {
-            0% { transform: scale(0.8); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
+
+        .stats-cards {
+            display: flex;
+            gap: 15px;
+            padding: 0 20px;
+            margin-top: -25px;
+            margin-bottom: 25px;
         }
-        
-        .result-title {
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 20px;
+
+        .stat-card {
+            background: var(--tg-theme-secondary-bg-color, white);
+            border-radius: 20px;
+            padding: 15px;
+            flex: 1;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        
-        .result-title.win {
-            color: #31c48d;
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
         }
-        
-        .result-title.lose {
-            color: #e34f4f;
+
+        .stat-card.done {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
         }
-        
-        .result-title.draw {
-            color: #f59e0b;
+
+        .stat-card.remaining {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
         }
-        
-        .rematch-timer {
-            font-size: 48px;
-            font-weight: 700;
-            color: var(--tg-theme-button-color, #40a7e3);
-            margin: 20px 0;
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
         }
-        
-        .rematch-buttons {
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .categories {
+            padding: 0 20px;
+        }
+
+        .category {
+            background: var(--tg-theme-secondary-bg-color, white);
+            border-radius: 20px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+
+        .category.dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+
+        .category.drag-over {
+            border: 2px dashed #667eea;
+        }
+
+        .category-header {
+            padding: 18px 20px;
+            background: var(--tg-theme-secondary-bg-color, white);
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .category-header:hover .delete-category {
+            opacity: 1;
+        }
+
+        .category-header.expanded {
+            border-bottom-color: #667eea;
+            background: linear-gradient(to right, rgba(102,126,234,0.05), transparent);
+        }
+
+        .category-name {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .category-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .category-progress {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            pointer-events: none;
+        }
+
+        .progress-badge {
+            background: var(--tg-theme-bg-color, #f0f0f0);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--tg-theme-text-color, #666);
+        }
+
+        .arrow {
+            font-size: 20px;
+            color: #667eea;
+            transition: transform 0.3s;
+            pointer-events: none;
+        }
+
+        .arrow.expanded {
+            transform: rotate(180deg);
+        }
+
+        .delete-category {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255, 71, 87, 0.1);
+            color: #ff4757;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s;
+            font-size: 18px;
+            pointer-events: auto;
+        }
+
+        .delete-category:hover {
+            background: #ff4757;
+            color: white;
+            opacity: 1;
+        }
+
+        .tasks {
+            padding: 15px;
+            background: var(--tg-theme-bg-color, #f8f9fa);
+        }
+
+        .task {
+            background: var(--tg-theme-secondary-bg-color, white);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: move;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            position: relative;
+        }
+
+        .task:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+
+        .task:hover .delete-task {
+            opacity: 1;
+        }
+
+        .task.dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+
+        .task.drag-over {
+            border: 2px dashed #667eea;
+            margin-bottom: 15px;
+        }
+
+        .task.done {
+            opacity: 0.8;
+            background: linear-gradient(to right, rgba(76,175,80,0.1), transparent);
+        }
+
+        .task.done .task-name {
+            text-decoration: line-through;
+            color: var(--tg-theme-hint-color, #999);
+        }
+
+        .task-checkbox {
+            width: 24px;
+            height: 24px;
+            border-radius: 8px;
+            border: 2px solid #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+            transition: all 0.2s;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+
+        .task.done .task-checkbox {
+            background: #4caf50;
+            border-color: #4caf50;
+        }
+
+        .task-name {
+            flex: 1;
+            font-size: 16px;
+            pointer-events: none;
+        }
+
+        .delete-task {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255, 71, 87, 0.1);
+            color: #ff4757;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s;
+            font-size: 18px;
+            pointer-events: auto;
+        }
+
+        .delete-task:hover {
+            background: #ff4757;
+            color: white;
+            opacity: 1;
+        }
+
+        .quick-add {
+            padding: 15px;
+            background: var(--tg-theme-secondary-bg-color, white);
+            border-radius: 15px;
+            margin: 10px 0;
             display: flex;
             gap: 10px;
-            margin-top: 20px;
+            align-items: center;
         }
-        
-        .rematch-btn {
+
+        .quick-add input {
             flex: 1;
-            background: var(--tg-theme-button-color, #40a7e3);
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.2s;
+            background: var(--tg-theme-bg-color, white);
+            color: var(--tg-theme-text-color, #212529);
+        }
+
+        .quick-add input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+
+        .quick-add input::placeholder {
+            color: var(--tg-theme-hint-color, #999);
+        }
+
+        .quick-add button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            border-radius: 30px;
-            padding: 15px;
+            border-radius: 15px;
+            padding: 15px 20px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
         }
-        
-        .rematch-btn.secondary {
-            background: var(--tg-theme-hint-color, #9aa3ad);
+
+        .quick-add button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102,126,234,0.4);
         }
-        
-        /* Главный экран */
-        .main-screen {
+
+        .add-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 16px 25px;
+            font-size: 16px;
+            font-weight: 600;
+            width: calc(100% - 40px);
+            margin: 10px 20px;
+            cursor: pointer;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 80vh;
-            text-align: center;
-        }
-        
-        .main-screen h1 {
-            font-size: 48px;
-            margin-bottom: 20px;
-            background: linear-gradient(135deg, #40a7e3, #e34f4f);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .main-screen p {
-            font-size: 18px;
-            color: var(--tg-theme-hint-color, #6c757d);
-            margin-bottom: 50px;
-        }
-        
-        .play-button {
-            background: var(--tg-theme-button-color, #40a7e3);
-            color: var(--tg-theme-button-text-color, #ffffff);
-            border: none;
-            border-radius: 60px;
-            padding: 20px 60px;
-            font-size: 28px;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 10px 20px rgba(64, 167, 227, 0.4);
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(102,126,234,0.4);
             transition: transform 0.2s, box-shadow 0.2s;
         }
-        
-        .play-button:active {
-            transform: scale(0.95);
-            box-shadow: 0 5px 10px rgba(64, 167, 227, 0.4);
+
+        .add-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102,126,234,0.5);
         }
-        
-        /* Экран приглашения */
-        .invite-screen {
-            display: none;
-            flex-direction: column;
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--tg-theme-hint-color, #999);
         }
-        
-        .back-button {
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: var(--tg-theme-text-color);
-            cursor: pointer;
+
+        .empty-state-emoji {
+            font-size: 80px;
             margin-bottom: 20px;
-            align-self: flex-start;
+            opacity: 0.5;
         }
-        
-        .invite-screen h2 {
-            font-size: 24px;
-            margin-bottom: 20px;
-        }
-        
-        .invite-methods {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .invite-method-btn {
-            flex: 1;
-            background: var(--tg-theme-secondary-bg-color, #ffffff);
-            border: none;
-            border-radius: 30px;
-            padding: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--tg-theme-text-color);
-            cursor: pointer;
-        }
-        
-        .invite-method-btn.active {
-            background: var(--tg-theme-button-color, #40a7e3);
-            color: white;
-        }
-        
-        .username-input {
-            background: var(--tg-theme-secondary-bg-color, #ffffff);
-            border-radius: 30px;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .username-input input {
-            flex: 1;
-            border: none;
-            background: transparent;
-            outline: none;
-            font-size: 16px;
-            color: var(--tg-theme-text-color);
-        }
-        
-        .send-invite-btn {
-            background: var(--tg-theme-button-color, #40a7e3);
-            color: white;
-            border: none;
-            border-radius: 30px;
-            padding: 15px;
+
+        .empty-state-text {
             font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
+            margin-bottom: 10px;
         }
-        
-        .invite-link-section {
-            margin-top: 20px;
-            padding: 20px;
-            background: var(--tg-theme-secondary-bg-color, #ffffff);
+
+        .empty-state-hint {
+            font-size: 14px;
+        }
+
+        .keyboard-hint {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(102,126,234,0.9);
+            color: white;
+            padding: 8px 15px;
             border-radius: 20px;
-            text-align: center;
+            font-size: 12px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 100;
+            pointer-events: none;
         }
-        
-        .share-link-btn {
-            background: var(--tg-theme-button-color, #40a7e3);
-            color: white;
-            border: none;
-            border-radius: 30px;
-            padding: 12px 30px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-        }
-        
-        /* Экран ожидания */
-        .waiting-screen {
+
+        .context-menu {
+            position: fixed;
+            background: var(--tg-theme-secondary-bg-color, white);
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            padding: 8px 0;
+            z-index: 1000;
+            min-width: 180px;
             display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 80vh;
-            text-align: center;
         }
-        
-        .waiting-screen h2 {
-            font-size: 28px;
-            margin-bottom: 30px;
+
+        .context-menu.show {
+            display: block;
         }
-        
-        .waiting-spinner {
-            width: 80px;
-            height: 80px;
-            border: 8px solid var(--tg-theme-secondary-bg-color, #f0f2f5);
-            border-top: 8px solid var(--tg-theme-button-color, #40a7e3);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 30px 0;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .cancel-btn {
-            background: none;
-            border: 2px solid var(--tg-theme-hint-color, #9aa3ad);
-            color: var(--tg-theme-hint-color);
-            border-radius: 30px;
-            padding: 12px 40px;
-            font-size: 16px;
-            font-weight: 600;
+
+        .context-menu-item {
+            padding: 12px 20px;
             cursor: pointer;
-            margin-top: 30px;
-        }
-        
-        /* Экран игры */
-        .game-screen {
-            display: none;
-            flex-direction: column;
-        }
-        
-        .game-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .game-header button {
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: var(--tg-theme-text-color);
-            cursor: pointer;
-        }
-        
-        .players-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 20px 0;
-        }
-        
-        .player-info {
-            text-align: center;
-            flex: 1;
-        }
-        
-        .player-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #40a7e3, #8a3ffc);
-            color: white;
+            transition: background 0.2s;
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: bold;
-            margin: 0 auto 10px;
-        }
-        
-        .player-info .name {
-            font-size: 16px;
-            font-weight: 600;
-        }
-        
-        .vs {
-            font-size: 20px;
-            font-weight: bold;
-            color: var(--tg-theme-hint-color);
-            margin: 0 10px;
-        }
-        
-        .timer-container {
-            background: var(--tg-theme-secondary-bg-color, #ffffff);
-            border-radius: 50px;
-            padding: 15px;
-            margin: 20px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .timer-label {
-            font-size: 16px;
-            color: var(--tg-theme-hint-color);
-        }
-        
-        .timer-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--tg-theme-button-color, #40a7e3);
-        }
-        
-        .timer-value.warning {
-            color: #e34f4f;
-        }
-        
-        .board {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
             gap: 10px;
-            aspect-ratio: 1;
-            margin: 20px 0 30px;
         }
-        
-        .cell {
-            aspect-ratio: 1;
-            background: var(--tg-theme-secondary-bg-color, #ffffff);
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 50px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+
+        .context-menu-item:hover {
+            background: rgba(102,126,234,0.1);
         }
-        
-        .cell.x {
-            color: #40a7e3;
+
+        .context-menu-item.delete {
+            color: #ff4757;
         }
-        
-        .cell.o {
-            color: #e34f4f;
+
+        .context-menu-item.delete:hover {
+            background: rgba(255,71,87,0.1);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .category {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @media (max-width: 480px) {
+            .quick-add {
+                flex-direction: column;
+            }
+            
+            .quick-add button {
+                width: 100%;
+            }
+            
+            .keyboard-hint {
+                display: none;
+            }
+            
+            .delete-category, .delete-task {
+                opacity: 1;
+                background: rgba(255,71,87,0.2);
+            }
         }
     </style>
 </head>
 <body>
-    <div class="app">
-        <!-- Затемнение и модальное окно результата -->
-        <div class="overlay" id="resultOverlay">
-            <div class="result-modal" id="resultModal">
-                <div class="result-title" id="resultTitle">Победа!</div>
-                <div class="rematch-timer" id="rematchTimer">10</div>
-                <p>Ожидание реванша...</p>
-                <div class="rematch-buttons">
-                    <button class="rematch-btn" id="acceptRematchBtn">✅ Принять</button>
-                    <button class="rematch-btn secondary" id="declineRematchBtn">❌ Выйти</button>
-                </div>
-            </div>
-        </div>
+    <div class="header">
+        <h1>
+            <span>📚 Мои заметки</span>
+        </h1>
+        <p>Отслеживай свои лабораторные работы</p>
+    </div>
 
-        <!-- Главный экран -->
-        <div class="main-screen" id="mainScreen">
-            <h1>❌⭕</h1>
-            <p>Нажмите "Играть", чтобы пригласить друга</p>
-            <button class="play-button" id="playMainBtn">Играть</button>
+    <div class="stats-cards" id="stats">
+        <div class="stat-card done" onclick="showDoneTasks()">
+            <div class="stat-value" id="done-count">0</div>
+            <div class="stat-label">✅ Сделано</div>
         </div>
-
-        <!-- Экран приглашения -->
-        <div class="invite-screen" id="inviteScreen">
-            <button class="back-button" id="backFromInviteBtn">← Назад</button>
-            <h2>Пригласить друга</h2>
-            
-            <div class="invite-methods">
-                <button class="invite-method-btn active" id="usernameMethod">По юзернейму</button>
-                <button class="invite-method-btn" id="linkMethod">По ссылке</button>
-            </div>
-            
-            <div id="usernameInvite">
-                <div class="username-input">
-                    <span>@</span>
-                    <input type="text" id="usernameInput" placeholder="username друга">
-                </div>
-                <button class="send-invite-btn" id="sendInviteBtn">Отправить приглашение</button>
-            </div>
-            
-            <div id="linkInvite" style="display: none;">
-                <div class="invite-link-section">
-                    <p>Отправьте эту ссылку другу в Telegram:</p>
-                    <button class="share-link-btn" id="shareInviteLink">🔗 Отправить ссылку</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Экран ожидания -->
-        <div class="waiting-screen" id="waitingScreen">
-            <h2 id="waitingTitle">Ожидание друга...</h2>
-            <div class="waiting-spinner"></div>
-            <p id="waitingSubtitle">Приглашение отправлено</p>
-            <button class="cancel-btn" id="cancelWaitBtn">Отмена</button>
-        </div>
-
-        <!-- Экран игры -->
-        <div class="game-screen" id="gameScreen">
-            <div class="game-header">
-                <button id="backFromGameBtn">←</button>
-                <span>Игра</span>
-                <div style="width: 24px;"></div>
-            </div>
-            
-            <div class="players-info">
-                <div class="player-info">
-                    <div class="player-avatar" id="playerXAvatar">👤</div>
-                    <div class="name" id="playerXName">Вы</div>
-                </div>
-                <div class="vs">VS</div>
-                <div class="player-info">
-                    <div class="player-avatar" id="playerOAvatar">👤</div>
-                    <div class="name" id="playerOName">Друг</div>
-                </div>
-            </div>
-            
-            <div class="timer-container">
-                <span class="timer-label">⏳ Время на ход</span>
-                <span class="timer-value" id="moveTimer">10s</span>
-            </div>
-            
-            <div class="board" id="board">
-                <!-- Клетки заполнятся через JS -->
-            </div>
+        <div class="stat-card remaining" onclick="showRemainingTasks()">
+            <div class="stat-value" id="remaining-count">0</div>
+            <div class="stat-label">⏳ Осталось</div>
         </div>
     </div>
 
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <div class="categories" id="categories"></div>
+
+    <div class="quick-add" id="quickAddCategory">
+        <input 
+            type="text" 
+            id="quickCategoryInput" 
+            placeholder="➕ Введите название предмета и нажмите Enter..." 
+            autocomplete="off"
+        >
+        <button onclick="addQuickCategory()">Добавить</button>
+    </div>
+
+    <div class="keyboard-hint">
+        ⏎ Enter - сохранить | Esc - отмена | 🖱️ Перетаскивание
+    </div>
+
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" onclick="handleContextMenuAction('edit')">
+            <span>✏️</span> Редактировать
+        </div>
+        <div class="context-menu-item delete" onclick="handleContextMenuAction('delete')">
+            <span>🗑️</span> Удалить
+        </div>
+    </div>
+
     <script>
-        // Инициализация Telegram
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
         
-        // Данные текущего пользователя
-        const currentUser = {
-            id: tg.initDataUnsafe?.user?.id || Math.floor(Math.random() * 1000000),
-            name: tg.initDataUnsafe?.user?.first_name || 'Игрок',
-            username: tg.initDataUnsafe?.user?.username || 'player'
-        };
-        
-        // Состояние приложения
-        let currentScreen = 'main';
-        let invitedFriend = null;
-        let gameBoard = ['', '', '', '', '', '', '', '', ''];
-        let currentPlayer = 'X';
-        let gameActive = false;
-        let moveTimer = null;
-        let moveTimeLeft = 10;
-        let rematchTimer = null;
-        let rematchTimeLeft = 10;
-        let rematchAccepted = false;
-        
-        // DOM элементы
-        const mainScreen = document.getElementById('mainScreen');
-        const inviteScreen = document.getElementById('inviteScreen');
-        const waitingScreen = document.getElementById('waitingScreen');
-        const gameScreen = document.getElementById('gameScreen');
-        const resultOverlay = document.getElementById('resultOverlay');
-        const resultModal = document.getElementById('resultModal');
-        const resultTitle = document.getElementById('resultTitle');
-        const rematchTimerSpan = document.getElementById('rematchTimer');
-        
-        const playMainBtn = document.getElementById('playMainBtn');
-        const backFromInviteBtn = document.getElementById('backFromInviteBtn');
-        const backFromGameBtn = document.getElementById('backFromGameBtn');
-        const cancelWaitBtn = document.getElementById('cancelWaitBtn');
-        const acceptRematchBtn = document.getElementById('acceptRematchBtn');
-        const declineRematchBtn = document.getElementById('declineRematchBtn');
-        
-        const usernameMethod = document.getElementById('usernameMethod');
-        const linkMethod = document.getElementById('linkMethod');
-        const usernameInvite = document.getElementById('usernameInvite');
-        const linkInvite = document.getElementById('linkInvite');
-        const usernameInput = document.getElementById('usernameInput');
-        const sendInviteBtn = document.getElementById('sendInviteBtn');
-        const shareInviteLink = document.getElementById('shareInviteLink');
-        
-        const waitingTitle = document.getElementById('waitingTitle');
-        const waitingSubtitle = document.getElementById('waitingSubtitle');
-        const playerXName = document.getElementById('playerXName');
-        const playerOName = document.getElementById('playerOName');
-        const moveTimerSpan = document.getElementById('moveTimer');
-        const board = document.getElementById('board');
-        
-        // Переключение экранов
-        function showScreen(screen) {
-            currentScreen = screen;
-            mainScreen.style.display = 'none';
-            inviteScreen.style.display = 'none';
-            waitingScreen.style.display = 'none';
-            gameScreen.style.display = 'none';
-            
-            if (screen === 'main') {
-                mainScreen.style.display = 'flex';
-            } else if (screen === 'invite') {
-                inviteScreen.style.display = 'flex';
-            } else if (screen === 'waiting') {
-                waitingScreen.style.display = 'flex';
-            } else if (screen === 'game') {
-                gameScreen.style.display = 'flex';
-                resetGame();
-            }
-        }
-        
-        // Переключение методов приглашения
-        usernameMethod.addEventListener('click', () => {
-            usernameMethod.classList.add('active');
-            linkMethod.classList.remove('active');
-            usernameInvite.style.display = 'block';
-            linkInvite.style.display = 'none';
+        tg.MainButton.setParams({
+            text: '📊 Статистика',
+            color: '#667eea'
         });
+        tg.MainButton.show();
+
+        let categories = [];
         
-        linkMethod.addEventListener('click', () => {
-            linkMethod.classList.add('active');
-            usernameMethod.classList.remove('active');
-            linkInvite.style.display = 'block';
-            usernameInvite.style.display = 'none';
-        });
-        
-        // Отправка приглашения по юзернейму
-        sendInviteBtn.addEventListener('click', () => {
-            const friendUsername = usernameInput.value.trim().replace('@', '');
-            
-            if (!friendUsername) {
-                tg.showPopup({
-                    title: 'Ошибка',
-                    message: 'Введите username друга',
-                    buttons: [{ type: 'ok' }]
-                });
-                return;
-            }
-            
-            // Отправляем приглашение через бота
-            if (tg && tg.sendData) {
-                tg.sendData(JSON.stringify({
-                    action: 'invite',
-                    opponent_username: friendUsername,
-                    inviter_id: currentUser.id,
-                    inviter_name: currentUser.name,
-                    inviter_username: currentUser.username
-                }));
-            }
-            
-            invitedFriend = { username: friendUsername };
-            waitingTitle.textContent = `Ожидание @${friendUsername}...`;
-            waitingSubtitle.textContent = 'Приглашение отправлено';
-            showScreen('waiting');
-        });
-        
-        // Отправка ссылки-приглашения
-        shareInviteLink.addEventListener('click', () => {
-            const inviteText = `🎮 Присоединяйся играть в крестики-нолики!\n\nИграй со мной: @${currentUser.username}\n\nОткрой бота и нажми /start: @hrestiks_and_holes_bot`;
-            const encodedText = encodeURIComponent(inviteText);
-            tg.openTelegramLink(`https://t.me/share/url?url=${encodedText}`);
-        });
-        
-        // Отмена ожидания
-        cancelWaitBtn.addEventListener('click', () => {
-            showScreen('main');
-        });
-        
-        // Начало игры (вызывается из бота)
-        window.startGame = function(opponentName) {
-            playerXName.textContent = currentUser.name;
-            playerOName.textContent = opponentName || 'Соперник';
-            showScreen('game');
-        };
-        
-        // Сброс игры
-        function resetGame() {
-            gameBoard = ['', '', '', '', '', '', '', '', ''];
-            currentPlayer = 'X';
-            gameActive = true;
-            moveTimeLeft = 10;
-            renderBoard();
-            startMoveTimer();
-        }
-        
-        // Рендер доски
-        function renderBoard() {
-            let html = '';
-            for (let i = 0; i < 9; i++) {
-                const cellClass = gameBoard[i] ? `cell ${gameBoard[i].toLowerCase()}` : 'cell';
-                html += `<div class="${cellClass}" data-index="${i}">${gameBoard[i]}</div>`;
-            }
-            board.innerHTML = html;
-            
-            document.querySelectorAll('.cell').forEach(cell => {
-                cell.addEventListener('click', handleCellClick);
+        let draggedItem = null;
+        let draggedType = null;
+        let draggedCategoryId = null;
+        let dragOverItem = null;
+
+        let contextMenuTarget = null;
+        let contextMenuType = null;
+
+        function loadData() {
+            const saved = tg.CloudStorage.getItem('notes', (err, data) => {
+                if (data) {
+                    categories = JSON.parse(data);
+                } else {
+                    categories = [];
+                }
+                render();
             });
         }
-        
-        // Таймер хода
-        function startMoveTimer() {
-            if (moveTimer) clearInterval(moveTimer);
-            moveTimeLeft = 10;
-            moveTimerSpan.textContent = `${moveTimeLeft}s`;
-            moveTimerSpan.classList.remove('warning');
-            
-            moveTimer = setInterval(() => {
-                if (!gameActive) {
-                    clearInterval(moveTimer);
-                    return;
-                }
-                
-                moveTimeLeft--;
-                moveTimerSpan.textContent = `${moveTimeLeft}s`;
-                
-                if (moveTimeLeft <= 3) {
-                    moveTimerSpan.classList.add('warning');
-                }
-                
-                if (moveTimeLeft <= 0) {
-                    clearInterval(moveTimer);
-                    gameActive = false;
-                    showGameResult('lose', 'Время вышло!');
-                }
-            }, 1000);
+
+        function saveData() {
+            tg.CloudStorage.setItem('notes', JSON.stringify(categories));
+            updateStats();
         }
-        
-        // Обработка клика по клетке
-        function handleCellClick(e) {
-            const index = e.target.dataset.index;
+
+        function updateStats() {
+            let done = 0;
+            let total = 0;
             
-            if (!gameActive || gameBoard[index] !== '') return;
-            if (currentPlayer !== 'X') return; // В демо X - игрок
+            categories.forEach(cat => {
+                cat.tasks.forEach(task => {
+                    total++;
+                    if (task.done) done++;
+                });
+            });
             
-            // Ход игрока
-            gameBoard[index] = 'X';
-            renderBoard();
+            document.getElementById('done-count').textContent = done;
+            document.getElementById('remaining-count').textContent = total - done;
             
-            // Проверка победы
-            if (checkWin('X')) {
-                gameActive = false;
-                showGameResult('win', 'Победа!');
-                return;
-            } else if (isDraw()) {
-                gameActive = false;
-                showGameResult('draw', 'Ничья!');
-                return;
+            tg.MainButton.setText(`✅ ${done}  ⏳ ${total - done}`);
+        }
+
+        function getCategoryIcon(name) {
+            const icons = {
+                'питон': '🐍',
+                'python': '🐍',
+                'эвм': '💻',
+                'computer': '💻',
+                'теория информации': '📊',
+                'информации': '📊',
+                'математика': '📐',
+                'math': '📐',
+                'физика': '⚛️',
+                'physics': '⚛️',
+                'английский': '🇬🇧',
+                'english': '🇬🇧',
+                'история': '📜',
+                'history': '📜'
+            };
+            
+            const lowerName = name.toLowerCase();
+            for (let key in icons) {
+                if (lowerName.includes(key)) {
+                    return icons[key];
+                }
+            }
+            return '📚';
+        }
+
+        function handleCategoryDragStart(e, categoryId) {
+            draggedItem = categoryId;
+            draggedType = 'category';
+            e.target.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', categoryId);
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleCategoryDragOver(e, categoryId) {
+            e.preventDefault();
+            if (draggedType === 'category' && draggedItem !== categoryId) {
+                dragOverItem = categoryId;
+                e.target.closest('.category').classList.add('drag-over');
+            }
+        }
+
+        function handleCategoryDragLeave(e) {
+            e.target.closest('.category').classList.remove('drag-over');
+        }
+
+        function handleCategoryDrop(e, targetCategoryId) {
+            e.preventDefault();
+            e.target.closest('.category').classList.remove('drag-over');
+            
+            if (draggedType === 'category' && draggedItem !== targetCategoryId) {
+                const fromIndex = categories.findIndex(c => c.id === draggedItem);
+                const toIndex = categories.findIndex(c => c.id === targetCategoryId);
+                
+                if (fromIndex !== -1 && toIndex !== -1) {
+                    const [movedCategory] = categories.splice(fromIndex, 1);
+                    categories.splice(toIndex, 0, movedCategory);
+                    render();
+                    saveData();
+                }
             }
             
-            // Смена игрока
-            currentPlayer = 'O';
-            moveTimeLeft = 10;
-            
-            // Ход друга (через бота)
-            setTimeout(() => friendMove(), 800);
+            draggedItem = null;
+            draggedType = null;
         }
-        
-        // Ход друга (в реальном приложении будет приходить от бота)
-        function friendMove() {
-            if (!gameActive || currentPlayer !== 'O') return;
-            
-            // Найти пустые клетки
-            const emptyIndices = gameBoard.reduce((acc, cell, i) => {
-                if (cell === '') acc.push(i);
-                return acc;
-            }, []);
-            
-            if (emptyIndices.length === 0) return;
-            
-            // В реальности ход будет от друга через бота
-            // Сейчас для демо - случайный ход
-            const randomIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
-            gameBoard[randomIndex] = 'O';
-            renderBoard();
-            
-            // Проверка победы
-            if (checkWin('O')) {
-                gameActive = false;
-                showGameResult('lose', 'Поражение!');
-                return;
-            } else if (isDraw()) {
-                gameActive = false;
-                showGameResult('draw', 'Ничья!');
-                return;
+
+        function handleTaskDragStart(e, categoryId, taskId) {
+            draggedItem = {categoryId, taskId};
+            draggedType = 'task';
+            draggedCategoryId = categoryId;
+            e.target.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', JSON.stringify({categoryId, taskId}));
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleTaskDragOver(e, categoryId, taskId) {
+            e.preventDefault();
+            if (draggedType === 'task') {
+                dragOverItem = {categoryId, taskId};
+                e.target.closest('.task').classList.add('drag-over');
             }
-            
-            // Смена игрока обратно
-            currentPlayer = 'X';
         }
-        
-        // Проверка победы
-        function checkWin(player) {
-            const winPatterns = [
-                [0,1,2], [3,4,5], [6,7,8],
-                [0,3,6], [1,4,7], [2,5,8],
-                [0,4,8], [2,4,6]
-            ];
-            
-            return winPatterns.some(pattern => 
-                pattern.every(i => gameBoard[i] === player)
-            );
+
+        function handleTaskDragLeave(e) {
+            e.target.closest('.task').classList.remove('drag-over');
         }
-        
-        // Проверка ничьей
-        function isDraw() {
-            return gameBoard.every(cell => cell !== '');
-        }
-        
-        // Показать результат с затемнением
-        function showGameResult(type, message) {
-            gameActive = false;
-            clearInterval(moveTimer);
+
+        function handleTaskDrop(e, targetCategoryId, targetTaskId) {
+            e.preventDefault();
+            e.target.closest('.task').classList.remove('drag-over');
             
-            resultTitle.textContent = message;
-            resultTitle.className = 'result-title';
-            
-            if (type === 'win') {
-                resultTitle.classList.add('win');
-            } else if (type === 'lose') {
-                resultTitle.classList.add('lose');
-            } else {
-                resultTitle.classList.add('draw');
-            }
-            
-            resultOverlay.classList.add('active');
-            startRematchTimer();
-        }
-        
-        // Таймер реванша
-        function startRematchTimer() {
-            rematchTimeLeft = 10;
-            rematchTimerSpan.textContent = rematchTimeLeft;
-            rematchAccepted = false;
-            
-            if (rematchTimer) clearInterval(rematchTimer);
-            
-            rematchTimer = setInterval(() => {
-                rematchTimeLeft--;
-                rematchTimerSpan.textContent = rematchTimeLeft;
+            if (draggedType === 'task') {
+                const sourceCategory = categories.find(c => c.id === draggedItem.categoryId);
+                const targetCategory = categories.find(c => c.id === targetCategoryId);
                 
-                if (rematchTimeLeft <= 0) {
-                    clearInterval(rematchTimer);
-                    if (!rematchAccepted) {
-                        resultOverlay.classList.remove('active');
-                        showScreen('main');
+                if (sourceCategory && targetCategory) {
+                    const sourceIndex = sourceCategory.tasks.findIndex(t => t.id === draggedItem.taskId);
+                    const targetIndex = targetCategory.tasks.findIndex(t => t.id === targetTaskId);
+                    
+                    if (sourceIndex !== -1 && targetIndex !== -1) {
+                        const [movedTask] = sourceCategory.tasks.splice(sourceIndex, 1);
+                        
+                        if (draggedItem.categoryId === targetCategoryId) {
+                            targetCategory.tasks.splice(targetIndex, 0, movedTask);
+                        } else {
+                            targetCategory.tasks.splice(targetIndex, 0, movedTask);
+                        }
+                        
+                        render();
+                        saveData();
                     }
                 }
-            }, 1000);
+            }
+            
+            draggedItem = null;
+            draggedType = null;
+            draggedCategoryId = null;
         }
-        
-        // Принять реванш
-        acceptRematchBtn.addEventListener('click', () => {
-            rematchAccepted = true;
-            clearInterval(rematchTimer);
-            resultOverlay.classList.remove('active');
-            resetGame();
+
+        function deleteCategory(categoryId) {
+            tg.showPopup({
+                title: '🗑️ Удаление',
+                message: 'Вы уверены, что хотите удалить этот предмет и все его лабы?',
+                buttons: [
+                    {id: 'delete', type: 'destructive', text: 'Удалить'},
+                    {id: 'cancel', type: 'cancel', text: 'Отмена'}
+                ]
+            }, (buttonId) => {
+                if (buttonId === 'delete') {
+                    categories = categories.filter(c => c.id !== categoryId);
+                    render();
+                    saveData();
+                }
+            });
+        }
+
+        function deleteTask(categoryId, taskId) {
+            tg.showPopup({
+                title: '🗑️ Удаление',
+                message: 'Удалить эту лабораторную работу?',
+                buttons: [
+                    {id: 'delete', type: 'destructive', text: 'Удалить'},
+                    {id: 'cancel', type: 'cancel', text: 'Отмена'}
+                ]
+            }, (buttonId) => {
+                if (buttonId === 'delete') {
+                    const category = categories.find(c => c.id === categoryId);
+                    if (category) {
+                        category.tasks = category.tasks.filter(t => t.id !== taskId);
+                        render();
+                        saveData();
+                    }
+                }
+            });
+        }
+
+        function showContextMenu(e, type, categoryId, taskId = null) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            contextMenuType = type;
+            contextMenuTarget = taskId || categoryId;
+            
+            const menu = document.getElementById('contextMenu');
+            menu.style.display = 'block';
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+            
+            setTimeout(() => {
+                document.addEventListener('click', closeContextMenu, {once: true});
+            }, 100);
+        }
+
+        function closeContextMenu() {
+            document.getElementById('contextMenu').style.display = 'none';
+            contextMenuTarget = null;
+            contextMenuType = null;
+        }
+
+        function handleContextMenuAction(action) {
+            if (action === 'delete') {
+                if (contextMenuType === 'category') {
+                    deleteCategory(contextMenuTarget);
+                } else if (contextMenuType === 'task') {
+                    for (let cat of categories) {
+                        if (cat.tasks.some(t => t.id === contextMenuTarget)) {
+                            deleteTask(cat.id, contextMenuTarget);
+                            break;
+                        }
+                    }
+                }
+            } else if (action === 'edit') {
+                tg.showPopup({
+                    title: '✏️ Редактирование',
+                    message: 'Функция в разработке',
+                    buttons: [{type: 'close'}]
+                });
+            }
+            closeContextMenu();
+        }
+
+        function render() {
+            const container = document.getElementById('categories');
+            
+            if (categories.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-emoji">📚</div>
+                        <div class="empty-state-text">Здесь пока пусто</div>
+                        <div class="empty-state-hint">Начните вводить название предмета выше ✨</div>
+                    </div>
+                `;
+                updateStats();
+                return;
+            }
+            
+            container.innerHTML = categories.map(cat => `
+                <div class="category" 
+                     draggable="true"
+                     ondragstart="handleCategoryDragStart(event, ${cat.id})"
+                     ondragover="handleCategoryDragOver(event, ${cat.id})"
+                     ondragleave="handleCategoryDragLeave(event)"
+                     ondrop="handleCategoryDrop(event, ${cat.id})"
+                     ondragend="() => {document.querySelectorAll('.category').forEach(el => el.classList.remove('drag-over'));}">
+                    
+                    <div class="category-header" onclick="toggleCategory(${cat.id})" oncontextmenu="showContextMenu(event, 'category', ${cat.id})">
+                        <div class="category-name">
+                            <span class="category-icon">${cat.icon || getCategoryIcon(cat.name)}</span>
+                            <span>${cat.name}</span>
+                        </div>
+                        <div class="category-progress">
+                            <span class="progress-badge">${cat.tasks.filter(t => t.done).length}/${cat.tasks.length}</span>
+                            <span class="arrow ${cat.expanded ? 'expanded' : ''}">▼</span>
+                        </div>
+                        <div class="delete-category" onclick="event.stopPropagation(); deleteCategory(${cat.id})">×</div>
+                    </div>
+                    
+                    ${cat.expanded ? `
+                        <div class="tasks">
+                            ${cat.tasks.map(task => `
+                                <div class="task ${task.done ? 'done' : ''}"
+                                     draggable="true"
+                                     ondragstart="handleTaskDragStart(event, ${cat.id}, ${task.id})"
+                                     ondragover="handleTaskDragOver(event, ${cat.id}, ${task.id})"
+                                     ondragleave="handleTaskDragLeave(event)"
+                                     ondrop="handleTaskDrop(event, ${cat.id}, ${task.id})"
+                                     ondragend="() => {document.querySelectorAll('.task').forEach(el => el.classList.remove('drag-over'));}"
+                                     oncontextmenu="showContextMenu(event, 'task', ${cat.id}, ${task.id})">
+                                    
+                                    <div class="task-checkbox" onclick="event.stopPropagation(); toggleTask(${cat.id}, ${task.id})">${task.done ? '✓' : ''}</div>
+                                    <span class="task-name">${task.name}</span>
+                                    <div class="delete-task" onclick="event.stopPropagation(); deleteTask(${cat.id}, ${task.id})">×</div>
+                                </div>
+                            `).join('')}
+                            
+                            <div class="quick-add" style="margin-top: 10px;">
+                                <input 
+                                    type="text" 
+                                    id="quickTaskInput_${cat.id}" 
+                                    class="quick-task-input"
+                                    placeholder="➕ Введите название лабы и нажмите Enter..." 
+                                    autocomplete="off"
+                                    data-category-id="${cat.id}"
+                                >
+                                <button onclick="addQuickTask(${cat.id})">Добавить</button>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+            
+            document.querySelectorAll('.quick-task-input').forEach(input => {
+                input.addEventListener('keydown', handleTaskKeyPress);
+            });
+            
+            updateStats();
+        }
+
+        function handleTaskKeyPress(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const categoryId = parseInt(e.target.dataset.categoryId);
+                addQuickTask(categoryId);
+            } else if (e.key === 'Escape') {
+                e.target.value = '';
+                e.target.blur();
+            }
+        }
+
+        function addQuickCategory() {
+            const input = document.getElementById('quickCategoryInput');
+            const name = input.value.trim();
+            
+            if (name) {
+                categories.push({
+                    id: Date.now(),
+                    name: name,
+                    icon: getCategoryIcon(name),
+                    tasks: [],
+                    expanded: true
+                });
+                
+                input.value = '';
+                render();
+                saveData();
+                setTimeout(() => input.focus(), 100);
+            }
+        }
+
+        function addQuickTask(categoryId) {
+            const input = document.getElementById(`quickTaskInput_${categoryId}`);
+            const name = input.value.trim();
+            
+            if (name && categoryId) {
+                const cat = categories.find(c => c.id === categoryId);
+                if (cat) {
+                    cat.tasks.push({
+                        id: Date.now(),
+                        name: name,
+                        done: false
+                    });
+                    
+                    input.value = '';
+                    render();
+                    saveData();
+                    
+                    setTimeout(() => {
+                        const newInput = document.getElementById(`quickTaskInput_${categoryId}`);
+                        if (newInput) newInput.focus();
+                    }, 100);
+                }
+            }
+        }
+
+        function toggleCategory(id) {
+            categories = categories.map(cat => {
+                if (cat.id === id) {
+                    return {...cat, expanded: !cat.expanded};
+                }
+                return {...cat, expanded: false};
+            });
+            render();
+            saveData();
+            
+            setTimeout(() => {
+                const taskInput = document.getElementById(`quickTaskInput_${id}`);
+                if (taskInput) taskInput.focus();
+            }, 100);
+        }
+
+        function toggleTask(categoryId, taskId) {
+            const cat = categories.find(c => c.id === categoryId);
+            const task = cat.tasks.find(t => t.id === taskId);
+            task.done = !task.done;
+            render();
+            saveData();
+        }
+
+        function showDoneTasks() {
+            tg.showPopup({
+                title: '✅ Сделано',
+                message: 'Функция фильтрации в разработке',
+                buttons: [{type: 'close'}]
+            });
+        }
+
+        function showRemainingTasks() {
+            tg.showPopup({
+                title: '⏳ Осталось',
+                message: 'Функция фильтрации в разработке',
+                buttons: [{type: 'close'}]
+            });
+        }
+
+        loadData();
+
+        tg.MainButton.onClick(() => {
+            tg.showPopup({
+                title: '📊 Статистика',
+                message: `Всего задач: ${categories.reduce((acc, cat) => acc + cat.tasks.length, 0)}\nВыполнено: ${document.getElementById('done-count').textContent}\nОсталось: ${document.getElementById('remaining-count').textContent}`,
+                buttons: [{type: 'close'}]
+            });
         });
-        
-        // Отклонить реванш
-        declineRematchBtn.addEventListener('click', () => {
-            clearInterval(rematchTimer);
-            resultOverlay.classList.remove('active');
-            showScreen('main');
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                e.preventDefault();
+                document.getElementById('quickCategoryInput').focus();
+            }
+            
+            if (e.key === 'Escape') {
+                const activeElement = document.activeElement;
+                if (activeElement.tagName === 'INPUT') {
+                    activeElement.value = '';
+                    activeElement.blur();
+                }
+            }
         });
-        
-        // Обработчики навигации
-        playMainBtn.addEventListener('click', () => showScreen('invite'));
-        backFromInviteBtn.addEventListener('click', () => showScreen('main'));
-        backFromGameBtn.addEventListener('click', () => showScreen('main'));
-        
-        // Инициализация
-        renderBoard();
+
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('quickCategoryInput').focus();
+            }, 500);
+        });
+
+        window.addEventListener('scroll', closeContextMenu);
     </script>
 </body>
 </html>
-=======
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Крестики-нолики - Telegram</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-        
-        body {
-            min-height: 100vh;
-            background: var(--tg-theme-bg-color, #f0f2f5);
-            color: var(--tg-theme-text-color, #000000);
-            transition: background 0.3s, color 0.3s;
-            padding: 0;
-            margin: 0;
-        }
-        
-        .app {
-            max-width: 500px;
-            margin: 0 auto;
-            padding: 20px 16px;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-        
-        /* Затемнение фона */
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(5px);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        
-        .overlay.active {
-            display: flex;
-        }
-        
-        /* Модальное окно результата */
-        .result-modal {
-            background: var(--tg-theme-secondary-bg-color, #ffffff);
-            border-radius: 30px;
-            padding: 40px 30px;
-            text-align: center;
-            max-width: 300px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            animation: popIn 0.3s ease;
-        }
-        
-        @keyframes popIn {
-            0% { transform: scale(0.8); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        
-        .result-title {
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 20px;
-        }
-        
-        .result-title.win {
-            color: #31c48d;
-        }
-        
-        .result-title.lose {
-            color: #e34f4f;
-        }
-        
-        .result-title.draw {
-            color: #f59e0b;
-        }
-        
-        .rematch-timer {
-            font-size: 48px;
-            font-weight: 700;
-            color: var(--tg-theme-button-color, #40a7e3);
-            margin: 20px 0;
-        }
-        
-        .rematch-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
-        .rematch-btn {
-            flex: 1;
-            background: var(--tg-theme-button-color, #40a7e3);
-            color: white;
-            border: none;
-            border-radius: 30px;
-            padding: 15px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        
-        .rematch-btn.secondary {
-            background: var(--tg-theme-hint-color, #9aa3ad);
-        }
-        
-        /* Главный экран */
-        .main-screen {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 80vh;
-            text-align: center;
-        }
-        
-        .main-screen h1 {
-            font-size: 48px;
-            margin-bottom: 20px;
-            background: linear-gradient(135deg, #40a7e3, #e34f4f);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .main-screen p {
-            font-size: 18px;
-            color: var(--tg-theme-hint-color, #6c757d);
-            margin-bottom: 50px;
-        }
-        
-        .play-button {
-            background: var(--tg-theme-button-color, #40a7e3);
-            color: var(--tg-theme-button-text-color, #ffffff);
-            border: none;
-            border-radius: 60px;
-            padding: 20px 60px;
-            font-size: 28px;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 10px 20px rgba(64, 167, 227, 0.4);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .play-button:active {
-            transform: scale(0.95);
-            box-shadow: 0 5px 10px rgba(64, 167, 227, 0.4);
-        }
-        
-        /* Экран приглашения */
-        .invite-screen {
-            display: none;
-            flex-direction: column;
-        }
-        
-        .back-button {
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: var(--tg-theme-text-color);
-            cursor: pointer;
-            margin-bottom: 20px;
-            align-self: flex-start;
-        }
-        
-        .invite-screen h2 {
-            font-size: 24px;
-            margin-bottom: 20px;
-        }
-        
-        .invite-methods {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .invite-method-btn {
-            flex: 1;
-            background: var(--tg-theme-secondary-bg-color, #ffffff);
-            border: none;
-            border-radius: 30px;
-            padding: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--tg-theme-text-color);
-            cursor: pointer;
-        }
-        
-        .invite-method-btn.active {
-            background: var(--tg-theme-button-color, #40a7e3);
-            color: white;
-        }
-        
-        .username-input {
-            background: var(--tg-theme-secondary-bg-color, #ffffff);
-            border-radius: 30px;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .username-input input {
-            flex: 1;
-            border: none;
-            background: transparent;
-            outline: none;
-            font-size: 16px;
-            color: var(--tg-theme-text-color);
-        }
-        
-        .send-invite-btn {
-            background: var(--tg-theme-button-color, #40a7e3);
-            color: white;
-            border: none;
-            border-radius: 30px;
-            padding: 15px;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-        }
-        
-        .invite-link-section {
-            margin-top: 20px;
-            padding: 20px;
-            background: var(--tg-theme-secondary-bg-color, #ffffff);
-            border-radius: 20px;
-            text-align: center;
-        }
-        
-        .share-link-btn {
-            background: var(--tg-theme-button-color, #40a7e3);
-            color: white;
-            border: none;
-            border-radius: 30px;
-            padding: 12px 30px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-        }
-        
-        /* Экран ожидания */
-        .waiting-screen {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 80vh;
-            text-align: center;
-        }
-        
-        .waiting-screen h2 {
-            font-size: 28px;
-            margin-bottom: 30px;
-        }
-        
-        .waiting-spinner {
-            width: 80px;
-            height: 80px;
-            border: 8px solid var(--tg-theme-secondary-bg-color, #f0f2f5);
-            border-top: 8px solid var(--tg-theme-button-color, #40a7e3);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 30px 0;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .cancel-btn {
-            background: none;
-            border: 2px solid var(--tg-theme-hint-color, #9aa3ad);
-            color: var(--tg-theme-hint-color);
-            border-radius: 30px;
-            padding: 12px 40px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 30px;
-        }
-        
-        /* Экран игры */
-        .game-screen {
-            display: none;
-            flex-direction: column;
-        }
-        
-        .game-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .game-header button {
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: var(--tg-theme-text-color);
-            cursor: pointer;
-        }
-        
-        .players-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 20px 0;
-        }
-        
-        .player-info {
-            text-align: center;
-            flex: 1;
-        }
-        
-        .player-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #40a7e3, #8a3ffc);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: bold;
-            margin: 0 auto 10px;
-        }
-        
-        .player-info .name {
-            font-size: 16px;
-            font-weight: 600;
-        }
-        
-        .vs {
-            font-size: 20px;
-            font-weight: bold;
-            color: var(--tg-theme-hint-color);
-            margin: 0 10px;
-        }
-        
-        .timer-container {
-            background: var(--tg-theme-secondary-bg-color, #ffffff);
-            border-radius: 50px;
-            padding: 15px;
-            margin: 20px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .timer-label {
-            font-size: 16px;
-            color: var(--tg-theme-hint-color);
-        }
-        
-        .timer-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--tg-theme-button-color, #40a7e3);
-        }
-        
-        .timer-value.warning {
-            color: #e34f4f;
-        }
-        
-        .board {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            aspect-ratio: 1;
-            margin: 20px 0 30px;
-        }
-        
-        .cell {
-            aspect-ratio: 1;
-            background: var(--tg-theme-secondary-bg-color, #ffffff);
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 50px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        
-        .cell.x {
-            color: #40a7e3;
-        }
-        
-        .cell.o {
-            color: #e34f4f;
-        }
-    </style>
-</head>
-<body>
-    <div class="app">
-        <!-- Затемнение и модальное окно результата -->
-        <div class="overlay" id="resultOverlay">
-            <div class="result-modal" id="resultModal">
-                <div class="result-title" id="resultTitle">Победа!</div>
-                <div class="rematch-timer" id="rematchTimer">10</div>
-                <p>Ожидание реванша...</p>
-                <div class="rematch-buttons">
-                    <button class="rematch-btn" id="acceptRematchBtn">✅ Принять</button>
-                    <button class="rematch-btn secondary" id="declineRematchBtn">❌ Выйти</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Главный экран -->
-        <div class="main-screen" id="mainScreen">
-            <h1>❌⭕</h1>
-            <p>Нажмите "Играть", чтобы пригласить друга</p>
-            <button class="play-button" id="playMainBtn">Играть</button>
-        </div>
-
-        <!-- Экран приглашения -->
-        <div class="invite-screen" id="inviteScreen">
-            <button class="back-button" id="backFromInviteBtn">← Назад</button>
-            <h2>Пригласить друга</h2>
-            
-            <div class="invite-methods">
-                <button class="invite-method-btn active" id="usernameMethod">По юзернейму</button>
-                <button class="invite-method-btn" id="linkMethod">По ссылке</button>
-            </div>
-            
-            <div id="usernameInvite">
-                <div class="username-input">
-                    <span>@</span>
-                    <input type="text" id="usernameInput" placeholder="username друга">
-                </div>
-                <button class="send-invite-btn" id="sendInviteBtn">Отправить приглашение</button>
-            </div>
-            
-            <div id="linkInvite" style="display: none;">
-                <div class="invite-link-section">
-                    <p>Отправьте эту ссылку другу в Telegram:</p>
-                    <button class="share-link-btn" id="shareInviteLink">🔗 Отправить ссылку</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Экран ожидания -->
-        <div class="waiting-screen" id="waitingScreen">
-            <h2 id="waitingTitle">Ожидание друга...</h2>
-            <div class="waiting-spinner"></div>
-            <p id="waitingSubtitle">Приглашение отправлено</p>
-            <button class="cancel-btn" id="cancelWaitBtn">Отмена</button>
-        </div>
-
-        <!-- Экран игры -->
-        <div class="game-screen" id="gameScreen">
-            <div class="game-header">
-                <button id="backFromGameBtn">←</button>
-                <span>Игра</span>
-                <div style="width: 24px;"></div>
-            </div>
-            
-            <div class="players-info">
-                <div class="player-info">
-                    <div class="player-avatar" id="playerXAvatar">👤</div>
-                    <div class="name" id="playerXName">Вы</div>
-                </div>
-                <div class="vs">VS</div>
-                <div class="player-info">
-                    <div class="player-avatar" id="playerOAvatar">👤</div>
-                    <div class="name" id="playerOName">Друг</div>
-                </div>
-            </div>
-            
-            <div class="timer-container">
-                <span class="timer-label">⏳ Время на ход</span>
-                <span class="timer-value" id="moveTimer">10s</span>
-            </div>
-            
-            <div class="board" id="board">
-                <!-- Клетки заполнятся через JS -->
-            </div>
-        </div>
-    </div>
-
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script>
-        // Инициализация Telegram
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-        
-        // Данные текущего пользователя
-        const currentUser = {
-            id: tg.initDataUnsafe?.user?.id || Math.floor(Math.random() * 1000000),
-            name: tg.initDataUnsafe?.user?.first_name || 'Игрок',
-            username: tg.initDataUnsafe?.user?.username || 'player'
-        };
-        
-        // Состояние приложения
-        let currentScreen = 'main';
-        let invitedFriend = null;
-        let gameBoard = ['', '', '', '', '', '', '', '', ''];
-        let currentPlayer = 'X';
-        let gameActive = false;
-        let moveTimer = null;
-        let moveTimeLeft = 10;
-        let rematchTimer = null;
-        let rematchTimeLeft = 10;
-        let rematchAccepted = false;
-        
-        // DOM элементы
-        const mainScreen = document.getElementById('mainScreen');
-        const inviteScreen = document.getElementById('inviteScreen');
-        const waitingScreen = document.getElementById('waitingScreen');
-        const gameScreen = document.getElementById('gameScreen');
-        const resultOverlay = document.getElementById('resultOverlay');
-        const resultModal = document.getElementById('resultModal');
-        const resultTitle = document.getElementById('resultTitle');
-        const rematchTimerSpan = document.getElementById('rematchTimer');
-        
-        const playMainBtn = document.getElementById('playMainBtn');
-        const backFromInviteBtn = document.getElementById('backFromInviteBtn');
-        const backFromGameBtn = document.getElementById('backFromGameBtn');
-        const cancelWaitBtn = document.getElementById('cancelWaitBtn');
-        const acceptRematchBtn = document.getElementById('acceptRematchBtn');
-        const declineRematchBtn = document.getElementById('declineRematchBtn');
-        
-        const usernameMethod = document.getElementById('usernameMethod');
-        const linkMethod = document.getElementById('linkMethod');
-        const usernameInvite = document.getElementById('usernameInvite');
-        const linkInvite = document.getElementById('linkInvite');
-        const usernameInput = document.getElementById('usernameInput');
-        const sendInviteBtn = document.getElementById('sendInviteBtn');
-        const shareInviteLink = document.getElementById('shareInviteLink');
-        
-        const waitingTitle = document.getElementById('waitingTitle');
-        const waitingSubtitle = document.getElementById('waitingSubtitle');
-        const playerXName = document.getElementById('playerXName');
-        const playerOName = document.getElementById('playerOName');
-        const moveTimerSpan = document.getElementById('moveTimer');
-        const board = document.getElementById('board');
-        
-        // Переключение экранов
-        function showScreen(screen) {
-            currentScreen = screen;
-            mainScreen.style.display = 'none';
-            inviteScreen.style.display = 'none';
-            waitingScreen.style.display = 'none';
-            gameScreen.style.display = 'none';
-            
-            if (screen === 'main') {
-                mainScreen.style.display = 'flex';
-            } else if (screen === 'invite') {
-                inviteScreen.style.display = 'flex';
-            } else if (screen === 'waiting') {
-                waitingScreen.style.display = 'flex';
-            } else if (screen === 'game') {
-                gameScreen.style.display = 'flex';
-                resetGame();
-            }
-        }
-        
-        // Переключение методов приглашения
-        usernameMethod.addEventListener('click', () => {
-            usernameMethod.classList.add('active');
-            linkMethod.classList.remove('active');
-            usernameInvite.style.display = 'block';
-            linkInvite.style.display = 'none';
-        });
-        
-        linkMethod.addEventListener('click', () => {
-            linkMethod.classList.add('active');
-            usernameMethod.classList.remove('active');
-            linkInvite.style.display = 'block';
-            usernameInvite.style.display = 'none';
-        });
-        
-        // Отправка приглашения по юзернейму
-        sendInviteBtn.addEventListener('click', () => {
-            const friendUsername = usernameInput.value.trim().replace('@', '');
-            
-            if (!friendUsername) {
-                tg.showPopup({
-                    title: 'Ошибка',
-                    message: 'Введите username друга',
-                    buttons: [{ type: 'ok' }]
-                });
-                return;
-            }
-            
-            // Отправляем приглашение через бота
-            if (tg && tg.sendData) {
-                tg.sendData(JSON.stringify({
-                    action: 'invite',
-                    opponent_username: friendUsername,
-                    inviter_id: currentUser.id,
-                    inviter_name: currentUser.name,
-                    inviter_username: currentUser.username
-                }));
-            }
-            
-            invitedFriend = { username: friendUsername };
-            waitingTitle.textContent = `Ожидание @${friendUsername}...`;
-            waitingSubtitle.textContent = 'Приглашение отправлено';
-            showScreen('waiting');
-        });
-        
-        // Отправка ссылки-приглашения
-        shareInviteLink.addEventListener('click', () => {
-            const inviteText = `🎮 Присоединяйся играть в крестики-нолики!\n\nИграй со мной: @${currentUser.username}\n\nОткрой бота и нажми /start: @hrestiks_and_holes_bot`;
-            const encodedText = encodeURIComponent(inviteText);
-            tg.openTelegramLink(`https://t.me/share/url?url=${encodedText}`);
-        });
-        
-        // Отмена ожидания
-        cancelWaitBtn.addEventListener('click', () => {
-            showScreen('main');
-        });
-        
-        // Начало игры (вызывается из бота)
-        window.startGame = function(opponentName) {
-            playerXName.textContent = currentUser.name;
-            playerOName.textContent = opponentName || 'Соперник';
-            showScreen('game');
-        };
-        
-        // Сброс игры
-        function resetGame() {
-            gameBoard = ['', '', '', '', '', '', '', '', ''];
-            currentPlayer = 'X';
-            gameActive = true;
-            moveTimeLeft = 10;
-            renderBoard();
-            startMoveTimer();
-        }
-        
-        // Рендер доски
-        function renderBoard() {
-            let html = '';
-            for (let i = 0; i < 9; i++) {
-                const cellClass = gameBoard[i] ? `cell ${gameBoard[i].toLowerCase()}` : 'cell';
-                html += `<div class="${cellClass}" data-index="${i}">${gameBoard[i]}</div>`;
-            }
-            board.innerHTML = html;
-            
-            document.querySelectorAll('.cell').forEach(cell => {
-                cell.addEventListener('click', handleCellClick);
-            });
-        }
-        
-        // Таймер хода
-        function startMoveTimer() {
-            if (moveTimer) clearInterval(moveTimer);
-            moveTimeLeft = 10;
-            moveTimerSpan.textContent = `${moveTimeLeft}s`;
-            moveTimerSpan.classList.remove('warning');
-            
-            moveTimer = setInterval(() => {
-                if (!gameActive) {
-                    clearInterval(moveTimer);
-                    return;
-                }
-                
-                moveTimeLeft--;
-                moveTimerSpan.textContent = `${moveTimeLeft}s`;
-                
-                if (moveTimeLeft <= 3) {
-                    moveTimerSpan.classList.add('warning');
-                }
-                
-                if (moveTimeLeft <= 0) {
-                    clearInterval(moveTimer);
-                    gameActive = false;
-                    showGameResult('lose', 'Время вышло!');
-                }
-            }, 1000);
-        }
-        
-        // Обработка клика по клетке
-        function handleCellClick(e) {
-            const index = e.target.dataset.index;
-            
-            if (!gameActive || gameBoard[index] !== '') return;
-            if (currentPlayer !== 'X') return; // В демо X - игрок
-            
-            // Ход игрока
-            gameBoard[index] = 'X';
-            renderBoard();
-            
-            // Проверка победы
-            if (checkWin('X')) {
-                gameActive = false;
-                showGameResult('win', 'Победа!');
-                return;
-            } else if (isDraw()) {
-                gameActive = false;
-                showGameResult('draw', 'Ничья!');
-                return;
-            }
-            
-            // Смена игрока
-            currentPlayer = 'O';
-            moveTimeLeft = 10;
-            
-            // Ход друга (через бота)
-            setTimeout(() => friendMove(), 800);
-        }
-        
-        // Ход друга (в реальном приложении будет приходить от бота)
-        function friendMove() {
-            if (!gameActive || currentPlayer !== 'O') return;
-            
-            // Найти пустые клетки
-            const emptyIndices = gameBoard.reduce((acc, cell, i) => {
-                if (cell === '') acc.push(i);
-                return acc;
-            }, []);
-            
-            if (emptyIndices.length === 0) return;
-            
-            // В реальности ход будет от друга через бота
-            // Сейчас для демо - случайный ход
-            const randomIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
-            gameBoard[randomIndex] = 'O';
-            renderBoard();
-            
-            // Проверка победы
-            if (checkWin('O')) {
-                gameActive = false;
-                showGameResult('lose', 'Поражение!');
-                return;
-            } else if (isDraw()) {
-                gameActive = false;
-                showGameResult('draw', 'Ничья!');
-                return;
-            }
-            
-            // Смена игрока обратно
-            currentPlayer = 'X';
-        }
-        
-        // Проверка победы
-        function checkWin(player) {
-            const winPatterns = [
-                [0,1,2], [3,4,5], [6,7,8],
-                [0,3,6], [1,4,7], [2,5,8],
-                [0,4,8], [2,4,6]
-            ];
-            
-            return winPatterns.some(pattern => 
-                pattern.every(i => gameBoard[i] === player)
-            );
-        }
-        
-        // Проверка ничьей
-        function isDraw() {
-            return gameBoard.every(cell => cell !== '');
-        }
-        
-        // Показать результат с затемнением
-        function showGameResult(type, message) {
-            gameActive = false;
-            clearInterval(moveTimer);
-            
-            resultTitle.textContent = message;
-            resultTitle.className = 'result-title';
-            
-            if (type === 'win') {
-                resultTitle.classList.add('win');
-            } else if (type === 'lose') {
-                resultTitle.classList.add('lose');
-            } else {
-                resultTitle.classList.add('draw');
-            }
-            
-            resultOverlay.classList.add('active');
-            startRematchTimer();
-        }
-        
-        // Таймер реванша
-        function startRematchTimer() {
-            rematchTimeLeft = 10;
-            rematchTimerSpan.textContent = rematchTimeLeft;
-            rematchAccepted = false;
-            
-            if (rematchTimer) clearInterval(rematchTimer);
-            
-            rematchTimer = setInterval(() => {
-                rematchTimeLeft--;
-                rematchTimerSpan.textContent = rematchTimeLeft;
-                
-                if (rematchTimeLeft <= 0) {
-                    clearInterval(rematchTimer);
-                    if (!rematchAccepted) {
-                        resultOverlay.classList.remove('active');
-                        showScreen('main');
-                    }
-                }
-            }, 1000);
-        }
-        
-        // Принять реванш
-        acceptRematchBtn.addEventListener('click', () => {
-            rematchAccepted = true;
-            clearInterval(rematchTimer);
-            resultOverlay.classList.remove('active');
-            resetGame();
-        });
-        
-        // Отклонить реванш
-        declineRematchBtn.addEventListener('click', () => {
-            clearInterval(rematchTimer);
-            resultOverlay.classList.remove('active');
-            showScreen('main');
-        });
-        
-        // Обработчики навигации
-        playMainBtn.addEventListener('click', () => showScreen('invite'));
-        backFromInviteBtn.addEventListener('click', () => showScreen('main'));
-        backFromGameBtn.addEventListener('click', () => showScreen('main'));
-        
-        // Инициализация
-        renderBoard();
-    </script>
-</body>
-</html>
->>>>>>> c72e856ebf6722dbd0919a87dd5fba6dce2ce225

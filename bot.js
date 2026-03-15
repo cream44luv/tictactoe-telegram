@@ -1,4 +1,4 @@
-// Бот для игры в крестики-нолики
+// Бот для игры в крестики-нолики (настоящий мультиплеер)
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 const app = express();
@@ -29,6 +29,7 @@ bot.on('web_app_data', (msg) => {
         const data = JSON.parse(msg.web_app_data.data);
         console.log('Получены данные:', data);
         
+        // Действие: приглашение друга
         if (data.action === 'invite') {
             const friendUsername = data.opponent_username.replace('@', '');
             const gameId = data.game_id;
@@ -38,14 +39,16 @@ bot.on('web_app_data', (msg) => {
                 creator: {
                     id: msg.chat.id,
                     name: data.inviter_name,
-                    username: data.inviter_username
+                    username: data.inviter_username,
+                    side: 'X'
                 },
                 opponent: null,
+                board: ['', '', '', '', '', '', '', '', ''],
+                currentTurn: 'X',
                 status: 'waiting',
                 createdAt: Date.now()
             });
             
-            // Ссылка на игру с параметрами
             const gameUrl = `${appUrl}?game=${gameId}`;
             
             // Пытаемся найти пользователя по юзернейму
@@ -70,7 +73,7 @@ bot.on('web_app_data', (msg) => {
             });
         }
         
-        // Обработка присоединения к игре
+        // Действие: присоединение к игре
         if (data.action === 'join') {
             const gameId = data.game_id;
             const game = games.get(gameId);
@@ -79,13 +82,39 @@ bot.on('web_app_data', (msg) => {
                 game.opponent = {
                     id: msg.chat.id,
                     name: data.player_name,
-                    username: data.player_username
+                    username: data.player_username,
+                    side: 'O'
                 };
                 game.status = 'ready';
                 
                 // Уведомляем создателя
                 bot.sendMessage(game.creator.id, 
                     `🎮 ${data.player_name} присоединился к игре! Игра начинается через 5 секунд...`);
+            }
+        }
+        
+        // Действие: ход в игре
+        if (data.action === 'move') {
+            const gameId = data.game_id;
+            const game = games.get(gameId);
+            
+            if (!game) return;
+            
+            // Обновляем доску
+            game.board = data.board;
+            game.currentTurn = data.nextTurn;
+            
+            // Определяем, кому отправлять ход
+            const receiver = (data.player === 'creator') ? game.opponent : game.creator;
+            
+            if (receiver) {
+                // Отправляем ход второму игроку
+                bot.sendMessage(receiver.id, JSON.stringify({
+                    action: 'opponent_move',
+                    board: data.board,
+                    nextTurn: data.nextTurn,
+                    gameId: gameId
+                }));
             }
         }
         
@@ -106,3 +135,13 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 
 console.log('🤖 Бот запущен и готов к работе!');
+
+// Очистка старых игр (раз в час)
+setInterval(() => {
+    const now = Date.now();
+    for (const [id, game] of games.entries()) {
+        if (now - game.createdAt > 3600000) { // 1 час
+            games.delete(id);
+        }
+    }
+}, 3600000);

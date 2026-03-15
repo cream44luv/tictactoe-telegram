@@ -176,6 +176,29 @@
             margin-bottom: 20px;
         }
         
+        .invite-methods {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .invite-method-btn {
+            flex: 1;
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
+            border: none;
+            border-radius: 30px;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--tg-theme-text-color);
+            cursor: pointer;
+        }
+        
+        .invite-method-btn.active {
+            background: var(--tg-theme-button-color, #40a7e3);
+            color: white;
+        }
+        
         .username-input {
             background: var(--tg-theme-secondary-bg-color, #ffffff);
             border-radius: 30px;
@@ -207,17 +230,24 @@
             width: 100%;
         }
         
+        .invite-link-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
+            border-radius: 20px;
+            text-align: center;
+        }
+        
         .share-link-btn {
             background: var(--tg-theme-button-color, #40a7e3);
             color: white;
             border: none;
             border-radius: 30px;
-            padding: 15px;
-            font-size: 18px;
+            padding: 12px 30px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
             width: 100%;
-            margin-top: 10px;
         }
         
         /* Экран ожидания */
@@ -312,6 +342,15 @@
         .player-info .name {
             font-size: 16px;
             font-weight: 600;
+        }
+        
+        .turn-indicator {
+            text-align: center;
+            font-size: 18px;
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 30px;
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
         }
         
         .vs {
@@ -420,15 +459,25 @@
             <button class="back-button" id="backFromInviteBtn">← Назад</button>
             <h2>Пригласить друга</h2>
             
-            <div class="username-input">
-                <span>@</span>
-                <input type="text" id="usernameInput" placeholder="username друга">
+            <div class="invite-methods">
+                <button class="invite-method-btn active" id="usernameMethod">По юзернейму</button>
+                <button class="invite-method-btn" id="linkMethod">По ссылке</button>
             </div>
-            <button class="send-invite-btn" id="sendInviteBtn">Отправить приглашение</button>
             
-            <p style="margin: 20px 0; text-align: center; color: var(--tg-theme-hint-color);">— или —</p>
+            <div id="usernameInvite">
+                <div class="username-input">
+                    <span>@</span>
+                    <input type="text" id="usernameInput" placeholder="username друга">
+                </div>
+                <button class="send-invite-btn" id="sendInviteBtn">Отправить приглашение</button>
+            </div>
             
-            <button class="share-link-btn" id="shareInviteLink">🔗 Отправить ссылку на игру</button>
+            <div id="linkInvite" style="display: none;">
+                <div class="invite-link-section">
+                    <p>Отправьте эту ссылку другу в Telegram:</p>
+                    <button class="share-link-btn" id="shareInviteLink">🔗 Отправить ссылку</button>
+                </div>
+            </div>
         </div>
 
         <!-- Экран ожидания -->
@@ -468,6 +517,8 @@
                 </div>
             </div>
             
+            <div class="turn-indicator" id="turnIndicator">Ход игрока X</div>
+            
             <div class="timer-container">
                 <span class="timer-label">⏳ Время на ход</span>
                 <span class="timer-value" id="moveTimer">10s</span>
@@ -496,11 +547,13 @@
         const gameId = urlParams.get('game');
         
         // Состояние приложения
-        let currentScreen = gameId ? 'countdown' : 'main';
+        let currentScreen = 'main';
+        let playerRole = null; // 'creator' или 'opponent'
         let currentGameId = gameId;
-        let isCreator = !gameId; // Если нет gameId в URL, значит создаем игру
+        let invitedFriend = null;
         let gameBoard = ['', '', '', '', '', '', '', '', ''];
         let currentPlayer = 'X';
+        let mySide = null; // 'X' или 'O'
         let gameActive = false;
         let moveTimer = null;
         let moveTimeLeft = 10;
@@ -517,9 +570,11 @@
         const countdownScreen = document.getElementById('countdownScreen');
         const gameScreen = document.getElementById('gameScreen');
         const resultOverlay = document.getElementById('resultOverlay');
+        const resultModal = document.getElementById('resultModal');
         const resultTitle = document.getElementById('resultTitle');
         const rematchTimerSpan = document.getElementById('rematchTimer');
         const countdownNumber = document.getElementById('countdownNumber');
+        const turnIndicator = document.getElementById('turnIndicator');
         
         const playMainBtn = document.getElementById('playMainBtn');
         const backFromInviteBtn = document.getElementById('backFromInviteBtn');
@@ -528,6 +583,10 @@
         const acceptRematchBtn = document.getElementById('acceptRematchBtn');
         const declineRematchBtn = document.getElementById('declineRematchBtn');
         
+        const usernameMethod = document.getElementById('usernameMethod');
+        const linkMethod = document.getElementById('linkMethod');
+        const usernameInvite = document.getElementById('usernameInvite');
+        const linkInvite = document.getElementById('linkInvite');
         const usernameInput = document.getElementById('usernameInput');
         const sendInviteBtn = document.getElementById('sendInviteBtn');
         const shareInviteLink = document.getElementById('shareInviteLink');
@@ -541,6 +600,8 @@
         
         // Если открыли по ссылке-приглашению
         if (gameId) {
+            playerRole = 'opponent';
+            mySide = 'O';
             // Сообщаем боту, что присоединились
             if (tg && tg.sendData) {
                 tg.sendData(JSON.stringify({
@@ -550,10 +611,32 @@
                     player_username: currentUser.username
                 }));
             }
-            
-            // Показываем обратный отсчет
             showScreen('countdown');
             startCountdown();
+        } else {
+            playerRole = 'creator';
+            mySide = 'X';
+        }
+        
+        // Слушаем сообщения от бота
+        if (tg && tg.onEvent) {
+            tg.onEvent('web_app_data', (data) => {
+                try {
+                    const msg = JSON.parse(data);
+                    console.log('Получено от бота:', msg);
+                    
+                    if (msg.action === 'opponent_move') {
+                        // Обновляем доску ходом соперника
+                        gameBoard = msg.board;
+                        currentPlayer = msg.nextTurn;
+                        renderBoard();
+                        startMoveTimer();
+                        updateTurnIndicator();
+                    }
+                } catch (e) {
+                    console.error('Ошибка получения данных:', e);
+                }
+            });
         }
         
         function showScreen(screen) {
@@ -577,6 +660,21 @@
                 resetGame();
             }
         }
+        
+        // Переключение методов приглашения
+        usernameMethod.addEventListener('click', () => {
+            usernameMethod.classList.add('active');
+            linkMethod.classList.remove('active');
+            usernameInvite.style.display = 'block';
+            linkInvite.style.display = 'none';
+        });
+        
+        linkMethod.addEventListener('click', () => {
+            linkMethod.classList.add('active');
+            usernameMethod.classList.remove('active');
+            linkInvite.style.display = 'block';
+            usernameInvite.style.display = 'none';
+        });
         
         // Отправка приглашения по юзернейму
         sendInviteBtn.addEventListener('click', () => {
@@ -606,6 +704,11 @@
                     game_id: newGameId
                 }));
             }
+            
+            invitedFriend = { 
+                username: friendUsername,
+                gameId: newGameId
+            };
             
             waitingTitle.textContent = `Ожидание @${friendUsername}...`;
             waitingSubtitle.textContent = 'Приглашение отправлено';
@@ -650,9 +753,14 @@
         }
         
         function startGame() {
-            // В реальном приложении здесь будут имена из данных игры
-            playerXName.textContent = isCreator ? currentUser.name : 'Друг';
-            playerOName.textContent = isCreator ? 'Друг' : currentUser.name;
+            // Устанавливаем имена игроков
+            if (playerRole === 'creator') {
+                playerXName.textContent = currentUser.name;
+                playerOName.textContent = 'Друг';
+            } else {
+                playerXName.textContent = 'Друг';
+                playerOName.textContent = currentUser.name;
+            }
             showScreen('game');
         }
         
@@ -663,6 +771,7 @@
             moveTimeLeft = 10;
             renderBoard();
             startMoveTimer();
+            updateTurnIndicator();
         }
         
         function renderBoard() {
@@ -676,6 +785,18 @@
             document.querySelectorAll('.cell').forEach(cell => {
                 cell.addEventListener('click', handleCellClick);
             });
+        }
+        
+        function updateTurnIndicator() {
+            if (!gameActive) return;
+            
+            if (currentPlayer === mySide) {
+                turnIndicator.innerHTML = '🎮 <strong>Твой ход!</strong>';
+                turnIndicator.style.color = 'var(--tg-theme-button-color, #40a7e3)';
+            } else {
+                turnIndicator.innerHTML = '⏳ Ход соперника...';
+                turnIndicator.style.color = 'var(--tg-theme-hint-color, #9aa3ad)';
+            }
         }
         
         function startMoveTimer() {
@@ -709,52 +830,52 @@
             const index = e.target.dataset.index;
             
             if (!gameActive || gameBoard[index] !== '') return;
-            if (currentPlayer !== 'X') return;
             
-            gameBoard[index] = 'X';
+            // Проверяем, чей сейчас ход
+            if (currentPlayer !== mySide) {
+                tg.showPopup({
+                    title: 'Не твой ход',
+                    message: 'Сейчас очередь соперника',
+                    buttons: [{ type: 'ok' }]
+                });
+                return;
+            }
+            
+            // Делаем ход
+            gameBoard[index] = currentPlayer;
             renderBoard();
             
-            if (checkWin('X')) {
+            // Проверка победы
+            if (checkWin(currentPlayer)) {
                 gameActive = false;
-                showGameResult('win', 'Победа!');
+                clearInterval(moveTimer);
+                const isWin = (currentPlayer === mySide);
+                showGameResult(isWin ? 'win' : 'lose', 
+                              isWin ? 'Победа!' : 'Поражение!');
                 return;
             } else if (isDraw()) {
                 gameActive = false;
+                clearInterval(moveTimer);
                 showGameResult('draw', 'Ничья!');
                 return;
             }
             
-            currentPlayer = 'O';
+            // Меняем игрока
+            const nextPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            currentPlayer = nextPlayer;
             moveTimeLeft = 10;
+            updateTurnIndicator();
             
-            setTimeout(() => friendMove(), 800);
-        }
-        
-        function friendMove() {
-            if (!gameActive || currentPlayer !== 'O') return;
-            
-            const emptyIndices = gameBoard.reduce((acc, cell, i) => {
-                if (cell === '') acc.push(i);
-                return acc;
-            }, []);
-            
-            if (emptyIndices.length === 0) return;
-            
-            const randomIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
-            gameBoard[randomIndex] = 'O';
-            renderBoard();
-            
-            if (checkWin('O')) {
-                gameActive = false;
-                showGameResult('lose', 'Поражение!');
-                return;
-            } else if (isDraw()) {
-                gameActive = false;
-                showGameResult('draw', 'Ничья!');
-                return;
+            // Отправляем ход сопернику через бота
+            if (tg && tg.sendData) {
+                tg.sendData(JSON.stringify({
+                    action: 'move',
+                    game_id: currentGameId,
+                    player: playerRole,
+                    board: gameBoard,
+                    nextTurn: nextPlayer
+                }));
             }
-            
-            currentPlayer = 'X';
         }
         
         function checkWin(player) {
@@ -817,7 +938,39 @@
             rematchAccepted = true;
             clearInterval(rematchTimer);
             resultOverlay.classList.remove('active');
-            resetGame();
+            
+            // Создаём новую игру
+            const newGameId = Date.now() + '-' + Math.random().toString(36).substring(2, 7);
+            currentGameId = newGameId;
+            
+            if (playerRole === 'creator') {
+                // Приглашаем того же друга
+                if (invitedFriend) {
+                    if (tg && tg.sendData) {
+                        tg.sendData(JSON.stringify({
+                            action: 'invite',
+                            opponent_username: invitedFriend.username,
+                            inviter_id: currentUser.id,
+                            inviter_name: currentUser.name,
+                            inviter_username: currentUser.username,
+                            game_id: newGameId
+                        }));
+                    }
+                    showScreen('waiting');
+                }
+            } else {
+                // Присоединяемся заново
+                if (tg && tg.sendData) {
+                    tg.sendData(JSON.stringify({
+                        action: 'join',
+                        game_id: newGameId,
+                        player_name: currentUser.name,
+                        player_username: currentUser.username
+                    }));
+                }
+                showScreen('countdown');
+                startCountdown();
+            }
         });
         
         declineRematchBtn.addEventListener('click', () => {

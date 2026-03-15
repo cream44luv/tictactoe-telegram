@@ -46,7 +46,7 @@ bot.on('web_app_data', (msg) => {
     }
 });
 
-// Обработка нажатий на кнопки
+// Обработка нажатий на кнопки (ТОЛЬКО ОДИН РАЗ!)
 bot.on('callback_query', (query) => {
     const data = query.data;
     const chatId = query.message.chat.id;
@@ -78,19 +78,4 @@ bot.on('callback_query', (query) => {
     }
     
     bot.answerCallbackQuery(query.id);
-});
-
-// Обработка нажатий на кнопки
-bot.on('callback_query', (query) => {
-  const data = query.data;
-  if (data.startsWith('accept_')) {
-    const inviterId = data.split('_')[1];
-    bot.sendMessage(query.from.id, 'Игра начинается!', {
-      reply_markup: {
-        inline_keyboard: [[
-          { text: '🎮 Перейти в игру', web_app: { url: 'https://YOUR_USERNAME.github.io/tictactoe-telegram-bot' } }
-        ]]
-      }
-    });
-  }
 });

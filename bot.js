@@ -89,4 +89,16 @@ bot.on('callback_query', (query) => {
     bot.answerCallbackQuery(query.id);
 });
 
+const express = require('express');
+const app = express();
+const PORT = process.env.PORT || 10000;
+
+app.get('/', (req, res) => {
+    res.send('Бот работает!');
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Веб-сервер для Render запущен на порту ${PORT}`);
+});
+
 console.log('🤖 Бот запущен и готов к работе!');

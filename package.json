@@ -1,0 +1,26 @@
+{
+  "name": "tic-tac-toe-tg-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cream44luv/tictactoe-telegram.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/cream44luv/tictactoe-telegram/issues"
+  },
+  "homepage": "https://github.com/cream44luv/tictactoe-telegram#readme",
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "node-telegram-bot-api": "^0.67.0"
+  }
+}

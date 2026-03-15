@@ -1,18 +1,21 @@
-// Простой бот на Node.js (пример)
+// Бот для игры в крестики-нолики
 const TelegramBot = require('node-telegram-bot-api');
 const token = process.env.TOKEN;
 const bot = new TelegramBot(token, { polling: true });
 
+// URL твоего приложения
+const appUrl = 'https://cream44luv.github.io/tictactoe-telegram/';
+
 // Обработка команды /start
 bot.onText(/\/start/, (msg) => {
-  const chatId = msg.chat.id;
-  bot.sendMessage(chatId, 'Добро пожаловать в игру!', {
-    reply_markup: {
-      inline_keyboard: [[
-        { text: '🎮 Открыть игру', web_app: { url: 'https://cream44luv.github.io/tictactoe-telegram/' } }
-      ]]
-    }
-  });
+    const chatId = msg.chat.id;
+    bot.sendMessage(chatId, '🎮 Добро пожаловать в игру "Крестики-нолики"!', {
+        reply_markup: {
+            inline_keyboard: [[
+                { text: '🎮 Открыть игру', web_app: { url: appUrl } }
+            ]]
+        }
+    });
 });
 
 // Обработка данных из Mini App
@@ -22,11 +25,13 @@ bot.on('web_app_data', (msg) => {
         console.log('Получены данные:', data);
         
         if (data.action === 'invite') {
-            // Ищем пользователя по юзернейму
-            bot.getChat(`@${data.opponent_username}`).then((chat) => {
-                // Отправляем приглашение сопернику
+            const friendUsername = data.opponent_username.replace('@', '');
+            
+            // Пытаемся найти пользователя по юзернейму
+            bot.getChat(`@${friendUsername}`).then((chat) => {
+                // Отправляем приглашение другу
                 bot.sendMessage(chat.id, 
-                    `🎮 ${data.inviter_name} (@${data.inviter_username}) приглашает вас сыграть в крестики-нолики!`, {
+                    `🎮 ${data.inviter_name} (@${data.inviter_username}) приглашает вас сыграть в крестики-нолики!\n\nИгра начнётся через 5 секунд после принятия.`, {
                     reply_markup: {
                         inline_keyboard: [[
                             { text: '✅ Принять игру', callback_data: `accept_${msg.chat.id}_${data.inviter_name}` },
@@ -36,9 +41,12 @@ bot.on('web_app_data', (msg) => {
                 });
                 
                 // Подтверждение отправителю
-                bot.sendMessage(msg.chat.id, `✅ Приглашение отправлено пользователю @${data.opponent_username}`);
-            }).catch(() => {
-                bot.sendMessage(msg.chat.id, `❌ Пользователь @${data.opponent_username} не найден или не начинал диалог с ботом`);
+                bot.sendMessage(msg.chat.id, `✅ Приглашение отправлено пользователю @${friendUsername}`);
+                
+            }).catch((error) => {
+                console.error('Ошибка поиска пользователя:', error);
+                bot.sendMessage(msg.chat.id, 
+                    `❌ Не удалось найти пользователя @${friendUsername}.\n\nУбедись, что:\n1️⃣ Друг написал боту команду /start\n2️⃣ Юзернейм введён правильно (без @)\n3️⃣ Друг не скрыл свой юзернейм в настройках`);
             });
         }
     } catch (error) {
@@ -46,7 +54,7 @@ bot.on('web_app_data', (msg) => {
     }
 });
 
-// Обработка нажатий на кнопки (ТОЛЬКО ОДИН РАЗ!)
+// Обработка нажатий на кнопки
 bot.on('callback_query', (query) => {
     const data = query.data;
     const chatId = query.message.chat.id;
@@ -56,19 +64,20 @@ bot.on('callback_query', (query) => {
         const inviterChatId = parts[1];
         const inviterName = parts[2];
         
+        // Сообщение тому, кто принял
         bot.sendMessage(chatId, '✅ Вы приняли приглашение! Игра начинается...', {
             reply_markup: {
                 inline_keyboard: [[
-                    { text: '🎮 Перейти в игру', web_app: { url: 'https://cream44luv.github.io/tictactoe-telegram/' } }
+                    { text: '🎮 Перейти в игру', web_app: { url: appUrl } }
                 ]]
             }
         });
         
-        // Уведомляем пригласившего
+        // Уведомление тому, кто пригласил
         bot.sendMessage(inviterChatId, `🎮 ${query.from.first_name} принял ваше приглашение! Игра начинается!`, {
             reply_markup: {
                 inline_keyboard: [[
-                    { text: '🎮 Перейти в игру', web_app: { url: 'https://cream44luv.github.io/tictactoe-telegram/' } }
+                    { text: '🎮 Перейти в игру', web_app: { url: appUrl } }
                 ]]
             }
         });
@@ -79,3 +88,5 @@ bot.on('callback_query', (query) => {
     
     bot.answerCallbackQuery(query.id);
 });
+
+console.log('🤖 Бот запущен и готов к работе!');
